@@ -146,7 +146,7 @@ To use this plugin, you'll need:
 
 If you encounter issues or have suggestions:
 
-1. Check the [GitHub Issues](https://github.com/adamchen/obsidian-daily-news/issues)
+1. Check the [GitHub Issues](https://github.com/Ghost04718/Daily-News-Briefing/issues)
 2. Review existing discussions
 3. Create a new issue with detailed information
 
