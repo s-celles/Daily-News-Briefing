@@ -1345,7 +1345,7 @@ ${newsItems.slice(0, 3).map(item => `- ${item.title} (${item.link})`).join('\n')
             if (this.settings.outputFormat === 'detailed') {
                 content += `## Table of Contents\n\n`;
                 this.settings.topics.forEach(topic => {
-                    content += `- [${topic}](#${topic.toLowerCase().replace(/\s+/g, '-')})\n`;
+                    content += `- [${topic}](#${topic.toLowerCase().replace(/\s+/g, '%20')})\n`;
                 });
                 content += `\n---\n\n`;
             }
