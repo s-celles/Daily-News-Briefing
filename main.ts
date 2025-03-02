@@ -637,171 +637,165 @@ export default class DailyNewsPlugin extends Plugin {
         const dateRangeParam = this.getOptimizedDateRange();
 
         // Build search parameters
-        const maxResultsPerRequest = 10; // API limitation
+        const maxResultsPerRequest = 10; // Google API 每次最多返回10条
         
-        // Determine how many requests to make based on settings
-        const totalResultsToFetch = this.settings.conserveApiCalls ? 
-            maxResultsPerRequest : 
-            Math.min(20, this.settings.news_number);
-            
+        // 1. 修改这里：移除保守模式判断，直接使用用户设置的数量
+        const totalResultsToFetch = Math.min(100, this.settings.news_number); // 最多获取100条
+        
+        // 2. 计算需要请求的次数
         const numRequests = Math.ceil(totalResultsToFetch / maxResultsPerRequest);
         
-        try {
-            // Collect all news items from multiple paginated requests
-            let allNewsItems: SearchItem[] = [];
+        // console.log(`Will fetch up to ${totalResultsToFetch} results in ${numRequests} requests for ${topic}`);
+
+        let allNewsItems: SearchItem[] = [];
+        
+        // 3. 先获取优质来源的结果
+        if (this.settings.preferredDomains && this.settings.preferredDomains.length > 0) {
+            // Make a targeted request for high-quality sources first
+            const highQualityNewsItems = await this.makeSearchRequest(
+                searchQuery, 
+                1, 
+                dateRangeParam, 
+                true, // prioritize preferred domains
+                maxResultsPerRequest
+            );
             
-            // First try with high-quality sources prioritized
-            if (this.settings.preferredDomains && this.settings.preferredDomains.length > 0) {
-                // Make a targeted request for high-quality sources first
-                const highQualityNewsItems = await this.makeSearchRequest(
-                    searchQuery, 
-                    1, 
-                    dateRangeParam, 
-                    true, // prioritize preferred domains
-                    maxResultsPerRequest
-                );
-                
-                if (highQualityNewsItems && highQualityNewsItems.length > 0) {
-                    allNewsItems = [...highQualityNewsItems];
-                    console.log(`Found ${highQualityNewsItems.length} high-quality items for ${topic}`);
+            if (highQualityNewsItems && highQualityNewsItems.length > 0) {
+                allNewsItems = [...highQualityNewsItems];
+                // console.log(`Found ${highQualityNewsItems.length} high-quality items for ${topic}`);
+            }
+        }
+        
+        // 4. 如果还需要更多结果，继续分页获取
+        if (allNewsItems.length < totalResultsToFetch) {
+            for (let i = 0; i < numRequests; i++) {
+                if (!this.canMakeApiCall()) {
+                    // console.log(`API call limit reached. Stopping after ${i} requests for topic:`, topic);
+                    break;
                 }
-            }
-            
-            // If we didn't get enough results from preferred sources, or don't have preferred sources,
-            // continue with regular pagination
-            if (allNewsItems.length < totalResultsToFetch) {
-                for (let i = 0; i < numRequests; i++) {
-                    // Check API call limit before each request
-                    if (!this.canMakeApiCall()) {
-                        console.log(`API call limit reached. Stopping after ${i} requests for topic:`, topic);
-                        break;
-                    }
-                    
-                    const startIndex = i * maxResultsPerRequest + 1; // Google uses 1-based indexing
-                    
-                    const newItems = await this.makeSearchRequest(
-                        searchQuery, 
-                        startIndex,
-                        dateRangeParam,
-                        false, // don't prioritize domains again
-                        maxResultsPerRequest
-                    );
-                    
-                    if (!newItems || newItems.length === 0) {
-                        break;
-                    }
-                    
-                    // Add unique results only (no duplicates)
-                    for (const item of newItems) {
-                        if (!allNewsItems.some(existingItem => existingItem.link === item.link)) {
-                            allNewsItems.push(item);
-                        }
-                    }
-                    
-                    // If we have enough results, stop making requests
-                    if (allNewsItems.length >= totalResultsToFetch) {
-                        break;
-                    }
-                    
-                    // Add a delay between requests to avoid rate limiting
-                    if (i < numRequests - 1) {
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                    }
-                }
-            }
-            
-            if (allNewsItems.length === 0) {
-                console.log(`No news items found for topic: ${topic}`);
-                return [];
-            }
-
-            console.log(`Found total of ${allNewsItems.length} items for ${topic}`);
-
-            // Map search items to news items with rich metadata
-            let newsItems = allNewsItems.map((item: SearchItem): NewsItem => {
-                // Extract domain from URL
-                const url = new URL(item.link);
-                const domain = url.hostname.replace('www.', '');
                 
-                // Extract source name from metadata or URL
-                const source = item.pagemap?.metatags?.[0]?.og_site_name || domain;
+                const startIndex = i * maxResultsPerRequest + 1;
+                // console.log(`Making request ${i + 1}/${numRequests} for ${topic}, starting at index ${startIndex}`);
                 
-                return {
-                    title: item.title,
-                    link: item.link,
-                    snippet: item.snippet,
-                    publishedTime: item.pagemap?.metatags?.[0]?.publishedTime,
-                    source: source,
-                    relevanceScore: this.calculateRelevanceScore(item, topic)
-                };
-            });
-
-            // Apply enhanced filtering
-            if (this.settings.useAdvancedFiltering) {
-                newsItems = this.applyAdvancedFiltering(newsItems);
-            }
-
-            // If no items after filtering, try a broader search
-            if (newsItems.length === 0 && this.canMakeApiCall()) {
-                console.log(`No items after filtering for ${topic}. Trying broader search...`);
-                
-                // Broader search with fewer constraints
-                const broaderQuery = `${topic} news latest`;
-                const broaderItems = await this.makeSearchRequest(
-                    broaderQuery,
-                    1,
-                    'w1', // Expand to a week to get more results
+                const newItems = await this.makeSearchRequest(
+                    searchQuery,
+                    startIndex,
+                    dateRangeParam,
                     false,
                     maxResultsPerRequest
                 );
                 
-                if (broaderItems && broaderItems.length > 0) {
-                    console.log(`Found ${broaderItems.length} items with broader search for ${topic}`);
-                    
-                    newsItems = broaderItems.map((item: SearchItem): NewsItem => {
-                        const url = new URL(item.link);
-                        const domain = url.hostname.replace('www.', '');
-                        const source = item.pagemap?.metatags?.[0]?.og_site_name || domain;
-                        
-                        return {
-                            title: item.title,
-                            link: item.link,
-                            snippet: item.snippet,
-                            publishedTime: item.pagemap?.metatags?.[0]?.publishedTime,
-                            source: source,
-                            relevanceScore: this.calculateRelevanceScore(item, topic) * 0.8 // Reduce score slightly for broader results
-                        };
-                    });
-                    
-                    // Less aggressive filtering for broader search
-                    newsItems = newsItems.filter(item => {
-                        // Only filter out very low relevance items
-                        return (item.relevanceScore || 0) >= Math.max(3, this.settings.contentRelevanceScore - 2);
-                    });
+                // 5. 修改这里：只有当完全没有结果时才中断
+                if (!newItems || !Array.isArray(newItems)) {
+                    // console.log(`No valid items returned for request ${i + 1}`);
+                    break;
+                }
+                
+                // console.log(`Request ${i + 1} returned ${newItems.length} items`);
+                
+                // 6. 添加新结果时去重
+                for (const item of newItems) {
+                    if (!allNewsItems.some(existingItem => existingItem.link === item.link)) {
+                        allNewsItems.push(item);
+                        // console.log(`Added new item: ${item.title}`);
+                    }
+                }
+                
+                // 7. 修改这里：使用实际目标数量判断
+                if (allNewsItems.length >= totalResultsToFetch) {
+                    // console.log(`Reached target number of items (${totalResultsToFetch}) for ${topic}`);
+                    break;
+                }
+                
+                // 在请求之间添加延迟
+                if (i < numRequests - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
             }
+        }
+        
+        // console.log(`Found total of ${allNewsItems.length} items for ${topic}`);
 
-            // Sort by relevance or date
-            if (this.settings.enableSourceRanking) {
-                // Sort by relevance score first
-                newsItems.sort((a: NewsItem, b: NewsItem) => 
-                    (b.relevanceScore || 0) - (a.relevanceScore || 0)
-                );
-            } else if (this.settings.sortByDate) {
-                // Sort by published date
-                newsItems.sort((a: NewsItem, b: NewsItem) => {
-                    if (!a.publishedTime) return 1;
-                    if (!b.publishedTime) return -1;
-                    return new Date(b.publishedTime).getTime() - new Date(a.publishedTime).getTime();
+        // Map search items to news items with rich metadata
+        let newsItems = allNewsItems.map((item: SearchItem): NewsItem => {
+            // Extract domain from URL
+            const url = new URL(item.link);
+            const domain = url.hostname.replace('www.', '');
+            
+            // Extract source name from metadata or URL
+            const source = item.pagemap?.metatags?.[0]?.og_site_name || domain;
+            
+            return {
+                title: item.title,
+                link: item.link,
+                snippet: item.snippet,
+                publishedTime: item.pagemap?.metatags?.[0]?.publishedTime,
+                source: source,
+                relevanceScore: this.calculateRelevanceScore(item, topic)
+            };
+        });
+
+        // Apply enhanced filtering
+        if (this.settings.useAdvancedFiltering) {
+            newsItems = this.applyAdvancedFiltering(newsItems);
+        }
+
+        // If no items after filtering, try a broader search
+        if (newsItems.length === 0 && this.canMakeApiCall()) {
+            // console.log(`No items after filtering for ${topic}. Trying broader search...`);
+            
+            // Broader search with fewer constraints
+            const broaderQuery = `${topic} news latest`;
+            const broaderItems = await this.makeSearchRequest(
+                broaderQuery,
+                1,
+                'w1', // Expand to a week to get more results
+                false,
+                maxResultsPerRequest
+            );
+            
+            if (broaderItems && broaderItems.length > 0) {
+                // console.log(`Found ${broaderItems.length} items with broader search for ${topic}`);
+                
+                newsItems = broaderItems.map((item: SearchItem): NewsItem => {
+                    const url = new URL(item.link);
+                    const domain = url.hostname.replace('www.', '');
+                    const source = item.pagemap?.metatags?.[0]?.og_site_name || domain;
+                    
+                    return {
+                        title: item.title,
+                        link: item.link,
+                        snippet: item.snippet,
+                        publishedTime: item.pagemap?.metatags?.[0]?.publishedTime,
+                        source: source,
+                        relevanceScore: this.calculateRelevanceScore(item, topic) * 0.8 // Reduce score slightly for broader results
+                    };
+                });
+                
+                // Less aggressive filtering for broader search
+                newsItems = newsItems.filter(item => {
+                    // Only filter out very low relevance items
+                    return (item.relevanceScore || 0) >= Math.max(3, this.settings.contentRelevanceScore - 2);
                 });
             }
-
-            return newsItems;
-        } catch (error) {
-            console.error('Failed to fetch news:', error);
-            new Notice(`Failed to fetch news for topic "${topic}". Check console for details.`);
-            return [];
         }
+
+        // Sort by relevance or date
+        if (this.settings.enableSourceRanking) {
+            // Sort by relevance score first
+            newsItems.sort((a: NewsItem, b: NewsItem) => 
+                (b.relevanceScore || 0) - (a.relevanceScore || 0)
+            );
+        } else if (this.settings.sortByDate) {
+            // Sort by published date
+            newsItems.sort((a: NewsItem, b: NewsItem) => {
+                if (!a.publishedTime) return 1;
+                if (!b.publishedTime) return -1;
+                return new Date(b.publishedTime).getTime() - new Date(a.publishedTime).getTime();
+            });
+        }
+
+        return newsItems;
     }
 
     // Helper methods for news fetching
@@ -830,7 +824,7 @@ export default class DailyNewsPlugin extends Plugin {
             params.set('q', `${params.get('q')} (${sitesQuery})`);
         }
         
-        console.log(`Making API request with query: ${params.get('q')}`);
+        // console.log(`Making API request with query: ${params.get('q')}`);
         
         // Increment API call counter
         this.incrementApiCallCount();
@@ -854,7 +848,7 @@ export default class DailyNewsPlugin extends Plugin {
         const data: CustomSearchResponse = await response.json();
         
         if (!data || !data.items || data.items.length === 0) {
-            console.log(`No results found for query: ${params.get('q')}`);
+            // console.log(`No results found for query: ${params.get('q')}`);
             return [];
         }
         
@@ -1014,19 +1008,19 @@ export default class DailyNewsPlugin extends Plugin {
             
             // 5. Reject homepage URLs that are likely not specific articles
             if (url.pathname === "/" || url.pathname === "" || url.pathname.length < 3) {
-                console.log(`Filtering out homepage URL: ${item.link}`);
+                // console.log(`Filtering out homepage URL: ${item.link}`);
                 return false;
             }
             
             // 6. Reject category/tag pages
             if (/\/category\/|\/categories\/|\/topics\/|\/sections\/|\/tag\/|\/tags\//.test(item.link)) {
-                console.log(`Filtering out category/tag page: ${item.link}`);
+                // console.log(`Filtering out category/tag page: ${item.link}`);
                 return false;
             }
             
             // 7. Reject content that looks like website descriptions
             if (item.snippet && /is a website|is the official|is an online|official site of|homepage of/i.test(item.snippet)) {
-                console.log(`Filtering out website description: ${item.title}`);
+                // console.log(`Filtering out website description: ${item.title}`);
                 return false;
             }
             
@@ -1103,7 +1097,7 @@ This plugin works best with specific, substantive news rather than general websi
 ${newsText}
 
 CRITICAL GUIDELINES - READ CAREFULLY:
-1. Focus ONLY on substantive, high-impact news with concrete developments
+1. Focus ONLY on substantive news with concrete developments
 2. Completely IGNORE any generic website listings, simple link compilations, or shallow content
 3. EXCLUDE any content that merely mentions a website without actual news (e.g., "News from Site X")
 4. NEVER include entries like "RIT highlights news from Rochester Institute of Technology" or "CNET provides product reviews"
@@ -1116,7 +1110,7 @@ CRITICAL GUIDELINES - READ CAREFULLY:
 11. Make each bullet point specific, concrete and informative - avoid generic placeholders
 12. Exclude ANY item that only describes what a website does rather than actual news content
 
-IMPORTANT: If the provided articles lack substantive content or are mostly website landing pages, DO NOT create placeholder entries. Instead, try to salvage any substantive news that does exist. If none exist, note "Insufficient substantive news found on this topic today" and explain briefly what type of content was available but unusable.
+IMPORTANT: If the provided articles lack substantive content or are mostly website landing pages, DO NOT create placeholder entries.
 
 WHEN CONTENT IS LIMITED:
 1. If ANY substantive article exists with real news, focus entirely on that, even if it's just one item.
@@ -1133,14 +1127,14 @@ EXAMPLES OF GOOD CONTENT TO INCLUDE:
 - "**Quantum Computing Breakthrough**: Researchers at MIT demonstrated a 128-qubit quantum processor achieving quantum advantage in simulating complex molecules on February 25, 2025. [Nature](https://www.nature.com/articles/s41586-025-05742-z)"
 - "**Global Trade Impact**: The EU-China trade deficit widened to €291 billion in 2024, a 24% increase from 2023, according to data released yesterday. [Financial Times](https://www.ft.com/content/3a7b5e9c)"
 
-## Key Developments
+### Key Developments
 [For each significant story - ONLY include items with actual news, NOT descriptions of websites]
 - **Title with specific detail**: Concrete fact or development. Include exact figures, data points, and expert quotes when available. [Source](URL)
 
-## Analysis & Context
+### Analysis & Context
 [Provide context, implications, or background for the most significant story]
 
-## Notable Quotes or Data
+### Notable Quotes or Data
 [Include a specific quote, statistic, or data point from the news, if available]
 `;
     }
@@ -1151,7 +1145,7 @@ EXAMPLES OF GOOD CONTENT TO INCLUDE:
 ${newsText}
 
 CRITICAL GUIDELINES - READ CAREFULLY:
-1. Focus ONLY on substantive, high-impact news with concrete developments
+1. Focus ONLY on substantive news with concrete developments
 2. Completely IGNORE any generic website listings, simple link compilations, or shallow content
 3. EXCLUDE any content that merely mentions a website without actual news (e.g., "News from Site X")
 4. NEVER include entries like "RIT highlights news from Rochester Institute of Technology" or "CNET provides product reviews"
@@ -1162,7 +1156,7 @@ CRITICAL GUIDELINES - READ CAREFULLY:
 9. Make each bullet point specific, concrete and informative - avoid generic placeholders
 10. Exclude ANY item that only describes what a website does rather than actual news content
 
-IMPORTANT: If the provided articles lack substantive content or are mostly website landing pages, DO NOT create placeholder entries. Instead, try to salvage any substantive news that does exist. If none exist, note "Insufficient substantive news found on this topic today" and explain briefly what type of content was available but unusable.
+IMPORTANT: If the provided articles lack substantive content or are mostly website landing pages, DO NOT create placeholder entries.
 
 WHEN CONTENT IS LIMITED:
 1. If ANY substantive article exists with real news, focus entirely on that, even if it's just one item.
@@ -1179,12 +1173,12 @@ EXAMPLES OF GOOD CONTENT TO INCLUDE:
 - "**Apple's AI Integration**: Apple announced integration of GPT-4o across iOS 19 starting next month, impacting 850M devices worldwide. [TechCrunch](https://techcrunch.com/article/apple-gpt4)"
 - "**Climate Policy Shift**: The EU Parliament voted 402-157 to increase carbon reduction targets to 65% by 2035, up from the previous 55% goal. [Reuters](https://www.reuters.com/article/eu-climate-vote)"
 
-## Key Updates
+### Key Updates
 - **Specific Development 1**: Concrete details with data points [Source](URL)
 - **Specific Development 2**: Concrete details with data points [Source](URL)
 - **Specific Development 3**: Concrete details with data points [Source](URL)
 
-## Noteworthy Quote or Data Point
+### Noteworthy Quote or Data Point
 [Most significant quote, metric or statistic with source and context]
 `;
     }
@@ -1213,7 +1207,7 @@ EXAMPLES OF GOOD CONTENT TO INCLUDE:
         
         // If no quality content found, use the fallback summary
         if (!hasQualityContent && processedItems.length < 3) {
-            console.log("No quality content found, using fallback summary");
+            // console.log("No quality content found, using fallback summary");
             
             // Extract the topic from the first item
             const topicMatch = processedItems[0]?.link.match(/[?&]q=([^&]+)/);
@@ -1295,7 +1289,7 @@ ${newsItems.slice(0, 3).map(item => `- ${item.title} (${item.link})`).join('\n')
             try {
                 return await operation();
             } catch (error) {
-                console.error(`Retry attempt ${i+1}/${maxRetries} failed:`, error);
+                // console.error(`Retry attempt ${i+1}/${maxRetries} failed:`, error);
                 
                 if (i === maxRetries - 1) {
                     console.error(`All ${maxRetries} retry attempts failed`);
@@ -1303,7 +1297,7 @@ ${newsItems.slice(0, 3).map(item => `- ${item.title} (${item.link})`).join('\n')
                 }
                 
                 const delay = Math.min(1000 * Math.pow(2, i), this.settings.maxRetryDelay);
-                console.log(`Retrying in ${delay/1000} seconds...`);
+                // console.log(`Retrying in ${delay/1000} seconds...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
         }
