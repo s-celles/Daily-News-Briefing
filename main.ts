@@ -1,4 +1,4 @@
-import { App, Plugin, PluginSettingTab, Setting, Notice, TFile } from 'obsidian';
+import { App, Plugin, PluginSettingTab, Setting, Notice, TFile, requestUrl } from 'obsidian';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 interface DailyNewsSettings {
@@ -32,6 +32,9 @@ interface DailyNewsSettings {
     conserveApiCalls: boolean; // Option to conserve API calls
     apiCallsPerDay: number; // Setting to limit API calls per day
     useEnhancedSearchQueries: boolean; // New option for better search queries
+    apiCallsToday: number; // 添加以保存API调用次数
+    lastApiCallDate: string; // 添加以保存最后调用日期
+    sortingMethod: 'relevance' | 'date' | 'none'; // 替换单独的排序设置
 }
 
 interface NewsItem {
@@ -109,7 +112,10 @@ const DEFAULT_SETTINGS: DailyNewsSettings = {
     useAdvancedFiltering: true,
     conserveApiCalls: true, // Default to conserving API calls
     apiCallsPerDay: 100, // Default limit
-    useEnhancedSearchQueries: true // Default to using enhanced queries
+    useEnhancedSearchQueries: true, // Default to using enhanced queries
+    apiCallsToday: 0,
+    lastApiCallDate: '',
+    sortingMethod: 'relevance' // 默认使用相关性排序
 }
 
 // Top news sources by quality/reliability
@@ -133,24 +139,14 @@ class DailyNewsSettingTab extends PluginSettingTab {
     display(): void {
         const {containerEl} = this;
         containerEl.empty();
-        containerEl.createEl('h2', {text: 'Daily News Settings'});
-        
-        // Add API usage info at the top
-        if (this.plugin.settings.conserveApiCalls) {
-            const apiInfo = containerEl.createEl('div', {
-                cls: 'api-usage-info',
-            });
-            apiInfo.createEl('p', {
-                text: `API Usage Today: ${this.plugin.apiCallsToday}/${this.plugin.settings.apiCallsPerDay} calls`
-            });
-        }
 
         // API configuration section
-        const apiSection = containerEl.createEl('div');
-        apiSection.createEl('h3', {text: 'API Configuration'});
+        new Setting(containerEl)
+            .setName('API configuration')
+            .setHeading();
 
-        new Setting(apiSection)
-            .setName('Google API Key')
+        new Setting(containerEl)
+            .setName('Google API key')
             .setDesc('Your Google Custom Search API key')
             .addText(text => text
                 .setPlaceholder('Enter API key')
@@ -160,19 +156,19 @@ class DailyNewsSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(apiSection)
-            .setName('Search Engine ID')
+        new Setting(containerEl)
+            .setName('Search engine ID')
             .setDesc('Your Google Custom Search Engine ID')
             .addText(text => text
-                .setPlaceholder('Enter Search Engine ID')
+                .setPlaceholder('Enter search engine ID')
                 .setValue(this.plugin.settings.searchEngineId)
                 .onChange(async (value) => {
                     this.plugin.settings.searchEngineId = value;
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(apiSection)
-            .setName('Gemini API Key')
+        new Setting(containerEl)
+            .setName('Gemini API key')
             .setDesc('Your Google Gemini API key')
             .addText(text => text
                 .setPlaceholder('Enter Gemini API key')
@@ -182,60 +178,23 @@ class DailyNewsSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        // Basic news preferences section
-        const newsSection = containerEl.createEl('div');
-        newsSection.createEl('h3', {text: 'Basic News Preferences'});
-
-        new Setting(newsSection)
-            .setName('Schedule Time')
-            .setDesc('When to generate daily news (24-hour format)')
-            .addText(text => text
-                .setPlaceholder('HH:MM')
-                .setValue(this.plugin.settings.scheduleTime)
-                .onChange(async (value) => {
-                    this.plugin.settings.scheduleTime = value;
-                    await this.plugin.saveSettings();
-                }));
-                
-        new Setting(newsSection)
-            .setName('Archive Folder')
-            .setDesc('Folder to store daily news notes')
-            .addText(text => text
-                .setPlaceholder('News Archive')
-                .setValue(this.plugin.settings.archiveFolder)
-                .onChange(async (value) => {
-                    this.plugin.settings.archiveFolder = value;
-                    await this.plugin.saveSettings();
-                }));
-
-        new Setting(newsSection)
-            .setName('Topics')
-            .setDesc('News topics to follow (comma-separated)')
-            .addText(text => text
-                .setPlaceholder('Technology, World News')
-                .setValue(this.plugin.settings.topics.join(', '))
-                .onChange(async (value) => {
-                    this.plugin.settings.topics = value.split(',').map(t => t.trim());
-                    await this.plugin.saveSettings();
-                }));
-
-        new Setting(newsSection)
-            .setName('Template File')
-            .setDesc('Custom template file path (optional)')
-            .addText(text => text
-                .setPlaceholder('templates/news-template.md')
-                .setValue(this.plugin.settings.templatePath)
-                .onChange(async (value) => {
-                    this.plugin.settings.templatePath = value;
-                    await this.plugin.saveSettings();
-                }));
-
         // API Usage Management section
-        const apiUsageSection = containerEl.createEl('div');
-        apiUsageSection.createEl('h3', {text: 'API Usage Management'});
+        new Setting(containerEl)
+            .setName('API usage management')
+            .setHeading();
         
-        new Setting(apiUsageSection)
-            .setName('Conserve API Calls')
+        // API usage info moved here
+        if (this.plugin.settings.conserveApiCalls) {
+            const apiInfo = containerEl.createEl('div', {
+                cls: 'api-usage-info',
+            });
+            apiInfo.createEl('p', {
+                text: `API usage today: ${this.plugin.settings.apiCallsToday}/${this.plugin.settings.apiCallsPerDay} calls`
+            });
+        }
+        
+        new Setting(containerEl)
+            .setName('Conserve API calls')
             .setDesc('Enable to limit API calls and prevent quota exhaustion')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.conserveApiCalls)
@@ -246,8 +205,8 @@ class DailyNewsSettingTab extends PluginSettingTab {
                 }));
                 
         if (this.plugin.settings.conserveApiCalls) {
-            new Setting(apiUsageSection)
-                .setName('Daily API Call Limit')
+            new Setting(containerEl)
+                .setName('Daily API call limit')
                 .setDesc('Maximum number of API calls to make per day')
                 .addText(text => text
                     .setPlaceholder('100')
@@ -258,25 +217,76 @@ class DailyNewsSettingTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     }));
                     
-            new Setting(apiUsageSection)
-                .setName('Reset API Counter')
+            new Setting(containerEl)
+                .setName('Reset API counter')
                 .setDesc('Reset today\'s API call counter')
                 .addButton(button => button
-                    .setButtonText('Reset Counter')
+                    .setButtonText('Reset counter')
                     .onClick(async () => {
-                        this.plugin.apiCallsToday = 0;
+                        this.plugin.settings.apiCallsToday = 0;
+                        await this.plugin.saveSettings();
                         this.plugin.updateStatusBar();
                         this.display();
                         new Notice('API call counter reset to 0');
                     }));
         }
 
-        // Search Quality section (new)
-        const searchQualitySection = containerEl.createEl('div');
-        searchQualitySection.createEl('h3', {text: 'Search Quality'});
+        // Basic news preferences section
+        new Setting(containerEl)
+            .setName('Basic news preferences')
+            .setHeading();
 
-        new Setting(searchQualitySection)
-            .setName('Use Enhanced Search Queries')
+        new Setting(containerEl)
+            .setName('Schedule time')
+            .setDesc('When to generate daily news (24-hour format)')
+            .addText(text => text
+                .setPlaceholder('HH:MM')
+                .setValue(this.plugin.settings.scheduleTime)
+                .onChange(async (value) => {
+                    this.plugin.settings.scheduleTime = value;
+                    await this.plugin.saveSettings();
+                }));
+                
+        new Setting(containerEl)
+            .setName('Archive folder')
+            .setDesc('Folder to store daily news notes')
+            .addText(text => text
+                .setPlaceholder('News Archive')
+                .setValue(this.plugin.settings.archiveFolder)
+                .onChange(async (value) => {
+                    this.plugin.settings.archiveFolder = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Topics')
+            .setDesc('News topics to follow (comma-separated)')
+            .addText(text => text
+                .setPlaceholder('Technology, World News')
+                .setValue(this.plugin.settings.topics.join(', '))
+                .onChange(async (value) => {
+                    this.plugin.settings.topics = value.split(',').map(t => t.trim());
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('Template file')
+            .setDesc('Custom template file path (optional)')
+            .addText(text => text
+                .setPlaceholder('templates/news-template.md')
+                .setValue(this.plugin.settings.templatePath)
+                .onChange(async (value) => {
+                    this.plugin.settings.templatePath = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        // Search Quality section
+        new Setting(containerEl)
+            .setName('Search quality')
+            .setHeading();
+
+        new Setting(containerEl)
+            .setName('Use enhanced search queries')
             .setDesc('Use topic-specific optimized search queries to find better news articles')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.useEnhancedSearchQueries)
@@ -286,11 +296,12 @@ class DailyNewsSettingTab extends PluginSettingTab {
                 }));
         
         // Advanced search settings
-        const searchSection = containerEl.createEl('div');
-        searchSection.createEl('h3', {text: 'Advanced Search Settings'});
+        new Setting(containerEl)
+            .setName('Advanced search settings')
+            .setHeading();
 
-        new Setting(searchSection)
-            .setName('Search Date Range')
+        new Setting(containerEl)
+            .setName('Search date range')
             .setDesc('How far back to search (d1 = 1 day, d2 = 2 days, w1 = 1 week)')
             .addText(text => text
                 .setPlaceholder('d2')
@@ -300,8 +311,8 @@ class DailyNewsSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(searchSection)
-            .setName('News Results Per Topic')
+        new Setting(containerEl)
+            .setName('News results per topic')
             .setDesc('Maximum number of news results to retrieve per topic (via pagination)')
             .addText(text => text
                 .setPlaceholder('20')
@@ -312,8 +323,8 @@ class DailyNewsSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(searchSection)
-            .setName('Max News Items Per Summary')
+        new Setting(containerEl)
+            .setName('Max news items per summary')
             .setDesc('Maximum number of news items to include in the summary')
             .addText(text => text
                 .setPlaceholder('8')
@@ -324,8 +335,8 @@ class DailyNewsSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(searchSection)
-            .setName('Minimum Content Length')
+        new Setting(containerEl)
+            .setName('Minimum content length')
             .setDesc('Minimum length for news snippets to be considered')
             .addText(text => text
                 .setPlaceholder('100')
@@ -336,8 +347,8 @@ class DailyNewsSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(searchSection)
-            .setName('Preferred Domains')
+        new Setting(containerEl)
+            .setName('Preferred domains')
             .setDesc('Comma-separated list of preferred domains (e.g., nytimes.com, bbc.com)')
             .addText(text => text
                 .setPlaceholder('nytimes.com, bbc.com')
@@ -347,8 +358,8 @@ class DailyNewsSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(searchSection)
-            .setName('Excluded Domains')
+        new Setting(containerEl)
+            .setName('Excluded domains')
             .setDesc('Comma-separated list of domains to exclude')
             .addText(text => text
                 .setPlaceholder('pinterest.com, facebook.com')
@@ -358,8 +369,8 @@ class DailyNewsSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(searchSection)
-            .setName('Exact Phrases to Include')
+        new Setting(containerEl)
+            .setName('Exact phrases to include')
             .setDesc('Comma-separated list of exact phrases to include in search')
             .addText(text => text
                 .setPlaceholder('latest developments, new research')
@@ -369,8 +380,8 @@ class DailyNewsSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(searchSection)
-            .setName('Terms to Exclude')
+        new Setting(containerEl)
+            .setName('Terms to exclude')
             .setDesc('Comma-separated list of terms to exclude from search')
             .addText(text => text
                 .setPlaceholder('clickbait, rumor, opinion')
@@ -381,11 +392,12 @@ class DailyNewsSettingTab extends PluginSettingTab {
                 }));
 
         // Content quality settings
-        const qualitySection = containerEl.createEl('div');
-        qualitySection.createEl('h3', {text: 'Content Quality Settings'});
+        new Setting(containerEl)
+            .setName('Content quality settings')
+            .setHeading();
 
-        new Setting(qualitySection)
-            .setName('Enable Advanced Filtering')
+        new Setting(containerEl)
+            .setName('Enable advanced filtering')
             .setDesc('Apply advanced filtering to improve news quality')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.useAdvancedFiltering)
@@ -394,18 +406,22 @@ class DailyNewsSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(qualitySection)
-            .setName('Enable Source Ranking')
-            .setDesc('Prioritize high-quality news sources')
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.enableSourceRanking)
-                .onChange(async (value) => {
-                    this.plugin.settings.enableSourceRanking = value;
+        // 合并排序选项为一个dropdown
+        new Setting(containerEl)
+            .setName('Results sorting method')
+            .setDesc('How to sort the news results')
+            .addDropdown(dropdown => dropdown
+                .addOption('relevance', 'Sort by relevance score')
+                .addOption('date', 'Sort by published date')
+                .addOption('none', 'No sorting')
+                .setValue(this.plugin.settings.sortingMethod)
+                .onChange(async (value: 'relevance' | 'date' | 'none') => {
+                    this.plugin.settings.sortingMethod = value;
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(qualitySection)
-            .setName('Minimum Relevance Score')
+        new Setting(containerEl)
+            .setName('Minimum relevance score')
             .setDesc('Minimum relevance score for news (1-10)')
             .addSlider(slider => slider
                 .setLimits(1, 10, 1)
@@ -416,8 +432,8 @@ class DailyNewsSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(qualitySection)
-            .setName('Remove Ads and Promotions')
+        new Setting(containerEl)
+            .setName('Remove ads and promotions')
             .setDesc('Clean promotional content from news')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.removeAds)
@@ -427,11 +443,12 @@ class DailyNewsSettingTab extends PluginSettingTab {
                 }));
 
         // Format section
-        const formatSection = containerEl.createEl('div');
-        formatSection.createEl('h3', {text: 'Output Format'});
+        new Setting(containerEl)
+            .setName('Output format')
+            .setHeading();
 
-        new Setting(formatSection)
-            .setName('Output Style')
+        new Setting(containerEl)
+            .setName('Output style')
             .setDesc('Choose between detailed or concise news format')
             .addDropdown(dropdown => dropdown
                 .addOption('detailed', 'Detailed')
@@ -442,8 +459,8 @@ class DailyNewsSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(formatSection)
-            .setName('Highlight Keywords')
+        new Setting(containerEl)
+            .setName('Highlight keywords')
             .setDesc('Highlight important terms in the summary')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.highlightKeywords)
@@ -452,18 +469,8 @@ class DailyNewsSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(formatSection)
-            .setName('Sort News by Date')
-            .setDesc('Sort news items by published date')
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.sortByDate)
-                .onChange(async (value) => {
-                    this.plugin.settings.sortByDate = value;
-                    await this.plugin.saveSettings();
-                }));
-
-        new Setting(formatSection)
-            .setName('Include Metadata')
+        new Setting(containerEl)
+            .setName('Include metadata')
             .setDesc('Include metadata in the generated news')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.includeMetadata)
@@ -472,8 +479,8 @@ class DailyNewsSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(formatSection)
-            .setName('Enable Notifications')
+        new Setting(containerEl)
+            .setName('Enable notifications')
             .setDesc('Show notifications when news is generated')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.enableNotifications)
@@ -487,20 +494,15 @@ class DailyNewsSettingTab extends PluginSettingTab {
 export default class DailyNewsPlugin extends Plugin {
     settings: DailyNewsSettings;
     statusBarItem: HTMLElement | null = null;
-    apiCallsToday: number = 0;
-    lastApiCallDate: string = '';
-
+    
     async onunload() {
-        console.log('Unloading Daily News Plugin');
-        if (this.statusBarItem) {
-            this.statusBarItem.remove();
-        }
+        // 移除不必要的日志
     }
     
     async onload() {
         await this.loadSettings();
         
-        // Load API call count
+        // 修改API调用计数器逻辑，现在使用持久化的设置
         this.loadApiCallCount();
         
         // Add settings tab
@@ -514,7 +516,7 @@ export default class DailyNewsPlugin extends Plugin {
         // Add manual trigger command
         this.addCommand({
             id: 'generate-news-now',
-            name: 'Generate News Now',
+            name: 'Generate news now',
             callback: async () => {
                 new Notice('Generating news...');
                 await this.generateDailyNews();
@@ -526,14 +528,15 @@ export default class DailyNewsPlugin extends Plugin {
         this.updateStatusBar();
     }
 
-    // API call tracking methods
+    // API call tracking methods - 修改为使用持久化设置
     private loadApiCallCount() {
         const today = new Date().toISOString().split('T')[0];
         
         // Reset counter if it's a new day
-        if (this.lastApiCallDate !== today) {
-            this.apiCallsToday = 0;
-            this.lastApiCallDate = today;
+        if (this.settings.lastApiCallDate !== today) {
+            this.settings.apiCallsToday = 0;
+            this.settings.lastApiCallDate = today;
+            this.saveSettings();
         }
     }
     
@@ -541,21 +544,22 @@ export default class DailyNewsPlugin extends Plugin {
         const today = new Date().toISOString().split('T')[0];
         
         // Reset counter if it's a new day
-        if (this.lastApiCallDate !== today) {
-            this.apiCallsToday = 0;
-            this.lastApiCallDate = today;
+        if (this.settings.lastApiCallDate !== today) {
+            this.settings.apiCallsToday = 0;
+            this.settings.lastApiCallDate = today;
         }
         
-        this.apiCallsToday++;
+        this.settings.apiCallsToday++;
+        this.saveSettings();
         this.updateStatusBar();
     }
     
-    // Changed to public so it can be accessed from DailyNewsSettingTab
+    // 改为public，可从设置选项卡访问
     public updateStatusBar() {
         if (this.statusBarItem) {
             const apiStatus = this.settings.conserveApiCalls ? 
-                ` | API: ${this.apiCallsToday}/${this.settings.apiCallsPerDay}` : '';
-            this.statusBarItem.setText(`📰 Daily News Ready${apiStatus}`);
+                ` | API: ${this.settings.apiCallsToday}/${this.settings.apiCallsPerDay}` : '';
+            this.statusBarItem.setText(`📰 Daily news ready${apiStatus}`);
         }
     }
     
@@ -564,7 +568,7 @@ export default class DailyNewsPlugin extends Plugin {
             return true;
         }
         
-        return this.apiCallsToday < this.settings.apiCallsPerDay;
+        return this.settings.apiCallsToday < this.settings.apiCallsPerDay;
     }
 
     async loadSettings() {
@@ -799,6 +803,7 @@ export default class DailyNewsPlugin extends Plugin {
     }
 
     // Helper methods for news fetching
+    // 修正makeSearchRequest方法中的请求方式，使用requestUrl替代app.request
     private async makeSearchRequest(
         query: string, 
         startIndex: number, 
@@ -824,35 +829,28 @@ export default class DailyNewsPlugin extends Plugin {
             params.set('q', `${params.get('q')} (${sitesQuery})`);
         }
         
-        // console.log(`Making API request with query: ${params.get('q')}`);
-        
-        // Increment API call counter
+        // 使用 requestUrl 而不是 fetch 或 app.request
         this.incrementApiCallCount();
         
         const response = await this.retryOperation(async () => {
-            const res = await fetch(
-                `https://www.googleapis.com/customsearch/v1?${params.toString()}`
-            );
-            if (!res.ok) {
-                try {
-                    const errorData = await res.json();
-                    console.error('API Error Details:', errorData);
-                    throw new Error(`HTTP error! status: ${res.status}, details: ${JSON.stringify(errorData)}`);
-                } catch (parseError) {
-                    throw new Error(`HTTP error! status: ${res.status}, couldn't parse error details`);
-                }
-            }
-            return res;
+            const res = await requestUrl({
+                url: `https://www.googleapis.com/customsearch/v1?${params.toString()}`
+            });
+            return res.text;
         });
 
-        const data: CustomSearchResponse = await response.json();
-        
-        if (!data || !data.items || data.items.length === 0) {
-            // console.log(`No results found for query: ${params.get('q')}`);
+        try {
+            const data: CustomSearchResponse = JSON.parse(response);
+            
+            if (!data || !data.items || data.items.length === 0) {
+                return [];
+            }
+            
+            return data.items;
+        } catch (e) {
+            console.error("Failed to parse search response:", e);
             return [];
         }
-        
-        return data.items;
     }
 
     private getOptimizedDateRange(): string {
@@ -1322,7 +1320,7 @@ ${newsItems.slice(0, 3).map(item => `- ${item.title} (${item.link})`).join('\n')
         const date = new Date().toISOString().split('T')[0];
         
         if (this.statusBarItem) {
-            this.statusBarItem.setText('📰 Generating News...');
+            this.statusBarItem.setText('📰 Generating news...');
         }
 
         try {
@@ -1332,7 +1330,7 @@ ${newsItems.slice(0, 3).map(item => `- ${item.title} (${item.link})`).join('\n')
 
             // Add API usage information
             if (this.settings.conserveApiCalls) {
-                content += `*API Usage: ${this.apiCallsToday}/${this.settings.apiCallsPerDay} calls today*\n\n`;
+                content += `*API Usage: ${this.settings.apiCallsToday}/${this.settings.apiCallsPerDay} calls today*\n\n`;
             }
 
             // Add table of contents
@@ -1345,7 +1343,7 @@ ${newsItems.slice(0, 3).map(item => `- ${item.title} (${item.link})`).join('\n')
             }
 
             // Smart topic prioritization when API calls are limited
-            const availableApiCalls = this.settings.apiCallsPerDay - this.apiCallsToday;
+            const availableApiCalls = this.settings.apiCallsPerDay - this.settings.apiCallsToday;
             let topicsToProcess = [...this.settings.topics];
             
             // If we're running low on API calls, prioritize the most important topics
@@ -1402,7 +1400,7 @@ ${newsItems.slice(0, 3).map(item => `- ${item.title} (${item.link})`).join('\n')
             }
             
             if (this.statusBarItem) {
-                this.statusBarItem.setText('📰 News Error!');
+                this.statusBarItem.setText('📰 News error!');
             }
         }
     }
@@ -1413,7 +1411,8 @@ ${newsItems.slice(0, 3).map(item => `- ${item.title} (${item.link})`).join('\n')
         try {
             const templateFile = this.app.vault.getAbstractFileByPath(this.settings.templatePath);
             if (templateFile instanceof TFile) {
-                return await this.app.vault.read(templateFile);
+                // 使用cachedRead而不是read
+                return await this.app.vault.cachedRead(templateFile);
             }
         } catch (error) {
             console.error('Failed to read template:', error);
