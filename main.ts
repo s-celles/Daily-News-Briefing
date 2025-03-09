@@ -582,7 +582,7 @@ export default class DailyNewsPlugin extends Plugin {
     async fetchNews(topic: string): Promise<NewsItem[]> {
         // Check if we can make API calls
         if (!this.canMakeApiCall()) {
-            console.log('API call limit reached for today. Skipping search for:', topic);
+            // console.log('API call limit reached for today. Skipping search for:', topic);
             new Notice(`API call limit reached (${this.settings.apiCallsPerDay}/day). Try again tomorrow.`);
             return [];
         }
@@ -635,7 +635,7 @@ export default class DailyNewsPlugin extends Plugin {
             }
         }
 
-        console.log(`Using search query for ${topic}: ${searchQuery}`);
+        // console.log(`Using search query for ${topic}: ${searchQuery}`);
 
         // Get date range parameter
         const dateRangeParam = this.getOptimizedDateRange();
