@@ -295,9 +295,9 @@ class DailyNewsSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
         
-        // Advanced search settings
+        // Advanced search
         new Setting(containerEl)
-            .setName('Advanced search settings')
+            .setName('Advanced search')
             .setHeading();
 
         new Setting(containerEl)
@@ -391,9 +391,9 @@ class DailyNewsSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        // Content quality settings
+        // Content quality
         new Setting(containerEl)
-            .setName('Content quality settings')
+            .setName('Content quality')
             .setHeading();
 
         new Setting(containerEl)
