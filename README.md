@@ -151,7 +151,7 @@ The quantum computing advancements represent a significant step toward practical
   
 4. **News Generated Failure**
    - Check whether there is an existing news file
-   - Check internet connection (VPN is required for Gemini)
+   - Check internet connection
    - Check API keys
 
 ## Support
