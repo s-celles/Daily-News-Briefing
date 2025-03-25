@@ -148,6 +148,11 @@ The quantum computing advancements represent a significant step toward practical
    - Reduce maximum search results
    - Reduce news items per topic
    - Adjust date range settings
+  
+4. **News Generated Failure**
+   - Check whether there is an existing news file
+   - Check internet connection (VPN is required for Gemini)
+   - Check API keys
 
 ## Support
 
