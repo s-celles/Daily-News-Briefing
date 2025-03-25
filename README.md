@@ -4,15 +4,15 @@ Get AI-powered daily news summaries directly in your Obsidian vault. Stay inform
 
 ## Features
 
-- 🤖 AI-powered news summarization using Google's Gemini
+- 🤖 AI-powered news summarization using Google's Gemini 2.0 Flash model
 - 📅 Automated daily news collection
 - 🎯 Customizable topics and news sources
-- 🔍 Smart content filtering and relevance scoring
+- 🔍 Advanced multi-phase search strategy with quality scoring
 - 📊 Detailed or concise summary formats
 - 🎨 Beautiful, theme-aware formatting
 - ⚡ API usage optimization
-- 🏷️ Keyword highlighting
-- 📂 Organized news archive
+- 🏷️ Quality-based news filtering
+- 📂 Organized news archive with table of contents
 
 ## Prerequisites
 
@@ -41,28 +41,28 @@ To use this plugin, you'll need:
 
 2. **Topics**: 
    - Add your topics of interest (e.g., "Technology", "World News")
-   - Customize topic-specific search phrases
+   - Each topic will be searched and summarized separately
 
 3. **Schedule**: 
-   - Set your preferred time for daily news generation
+   - Set your preferred time for daily news generation (24-hour format)
    - Choose your archive folder location
 
 ### Advanced Settings
 
 - **Content Quality**:
-  - Set minimum relevance scores
-  - Configure preferred/excluded domains
-  - Customize content filtering rules
+  - Set news items per topic (3-15)
+  - Configure maximum search results (10-50)
+  - Enable/disable strict quality filtering
+  - Add preferred and excluded domains
 
 - **Output Format**:
   - Choose between detailed or concise summaries
-  - Enable/disable keyword highlighting
-  - Customize metadata inclusion
+  - Enable/disable notifications
 
 - **API Usage**:
-  - Enable API call conservation
-  - Set daily API call limits
-  - Configure retry settings
+  - Customize date range for searches
+  - Set minimum content length
+  - Use custom AI prompts for summarization
 
 ## Usage
 
@@ -75,53 +75,60 @@ To use this plugin, you'll need:
 ### Manual Generation
 
 1. Use the command palette (Ctrl/Cmd + P)
-2. Search for "Generate News Now"
+2. Search for "Generate news now"
 3. Click to generate news immediately
 
 ### Reading Your News
 
-- News is organized by topics
+- News is organized by topics with a table of contents
 - Each topic includes:
-  - Key developments
-  - Source links
-  - AI-generated analysis
-  - Relevant quotes and data
-  - Highlighted keywords (if enabled)
+  - Key developments with concrete facts and statistics
+  - Source links in markdown format
+  - AI-generated analysis (in detailed mode)
+  - Notable quotes and data points
+  - Quality-filtered content from reliable sources
 
 ## Example Output
 
 ```markdown
 # Daily News - 2024-02-25
 
+## Table of Contents
+- [Technology](#technology)
+- [World News](#world%20news)
+
 ## Technology
 
-**AI Breakthrough**: Researchers at MIT demonstrated a new quantum processor achieving significant improvements in processing speed. [Nature](https://nature.com/article)
+### Key Developments
+- **AI Breakthrough**: Researchers at MIT demonstrated a new quantum processor achieving 24x processing speed improvements with their 128-qubit system. [Nature](https://nature.com/article)
+- **Intel Expands Production**: Intel announced a 15% increase in chip production capacity with a $20 billion investment in Arizona facilities, creating 3,000 jobs by 2025. [Reuters](https://reuters.com/article)
 
-**Key Points**:
-- 128-qubit system demonstrated
-- 24x performance increase
-- Applications in molecular simulation
+### Analysis & Context
+The quantum computing advancements represent a significant step toward practical quantum advantage in molecular simulation applications. This comes as competition intensifies between IBM, Google, and newer startups in the quantum space.
+
+### Notable Data Points or Quotes
+• "This benchmark represents a critical threshold for quantum utility in real-world applications" — Dr. Sarah Chen, Lead Researcher
+• 128-qubit system demonstrated stable operations for 300 microseconds, a 4x improvement over previous systems
 
 ## World News
 
-**Climate Agreement**: EU announces new carbon reduction targets, affecting industrial sectors. [Reuters](https://reuters.com/article)
-
-**Analysis**: This development signals a significant shift in European climate policy...
+**Climate Agreement**: EU announces new carbon reduction targets of 55% by 2030, affecting industrial sectors including steel, cement, and energy production. [Reuters](https://reuters.com/article)
 ```
 
 ## Tips for Best Results
 
 1. **Topic Selection**:
    - Use specific topics rather than broad categories
-   - Include relevant keywords for better targeting
+   - Topic-specific search terms are automatically added for better results
 
-2. **API Conservation**:
-   - Enable API call conservation for optimal usage
-   - Adjust news per topic based on your needs
+2. **Quality Settings**:
+   - Enable strict quality filtering for more reliable sources
+   - Add trusted news sources to preferred domains
+   - Add known low-quality sources to excluded domains
 
-3. **Content Quality**:
-   - Add reliable sources to preferred domains
-   - Adjust relevance scores as needed
+3. **API Usage**:
+   - Adjust maximum search results based on your API quota
+   - Set appropriate news items per topic for comprehensive coverage
 
 ## Troubleshooting
 
@@ -133,14 +140,14 @@ To use this plugin, you'll need:
    - Ensure topics are properly configured
 
 2. **Poor Quality Content**:
-   - Increase relevance score
-   - Add more specific search phrases
-   - Review excluded domains
+   - Enable strict quality filtering
+   - Add more specific topics
+   - Review excluded domains list
 
 3. **API Limits**:
-   - Enable API conservation
-   - Reduce topics or news per topic
-   - Adjust schedule frequency
+   - Reduce maximum search results
+   - Reduce news items per topic
+   - Adjust date range settings
 
 ## Support
 
