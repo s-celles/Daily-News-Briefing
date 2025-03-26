@@ -14,7 +14,7 @@ interface DailyNewsSettings {
     
     // Content quality settings
     resultsPerTopic: number;
-    maxSearchResults: number; // New setting for controlling search depth
+    maxSearchResults: number;
     preferredDomains: string[];
     excludedDomains: string[];
     
@@ -22,12 +22,13 @@ interface DailyNewsSettings {
     outputFormat: 'detailed' | 'concise';
     enableNotifications: boolean;
     
-    // Advanced settings (hidden by default)
+    // Advanced settings
     dateRange: string;
     minContentLength: number;
     useCustomPrompt: boolean;
-    customPrompt: string; // Custom AI prompt for advanced users
-    strictQualityFiltering: boolean; // New setting for strict filtering
+    customPrompt: string;
+    strictQualityFiltering: boolean;
+    qualityThreshold: number; // New setting for fine-tuning filtering
 }
 
 const DEFAULT_SETTINGS: DailyNewsSettings = {
@@ -43,7 +44,7 @@ const DEFAULT_SETTINGS: DailyNewsSettings = {
     
     // Content quality settings
     resultsPerTopic: 8,
-    maxSearchResults: 30, // Default to 30 results for deeper search
+    maxSearchResults: 30,
     preferredDomains: ['nytimes.com', 'bbc.com', 'reuters.com', 'apnews.com'],
     excludedDomains: ['pinterest.com', 'facebook.com', 'instagram.com'],
     
@@ -53,10 +54,11 @@ const DEFAULT_SETTINGS: DailyNewsSettings = {
     
     // Advanced settings
     dateRange: 'd2',
-    minContentLength: 120, // Increased minimum length
+    minContentLength: 80, // Reduced from 120 to be less strict
     useCustomPrompt: false,
-    customPrompt: '', // Empty by default
-    strictQualityFiltering: true // Enable strict filtering by default
+    customPrompt: '',
+    strictQualityFiltering: false, // Changed default to false for less strictness
+    qualityThreshold: 3 // Default lower threshold for quality
 }
 
 // List of high-quality news sources
@@ -238,8 +240,8 @@ class DailyNewsSettingTab extends PluginSettingTab {
                 }));
                 
         new Setting(containerEl)
-            .setName('Strict quality filtering')
-            .setDesc('Enforce stricter quality filters (removes more low-quality content)')
+            .setName('Quality filtering')
+            .setDesc('Enable stricter quality filters (may reduce number of results)')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.strictQualityFiltering)
                 .onChange(async (value) => {
@@ -274,7 +276,7 @@ class DailyNewsSettingTab extends PluginSettingTab {
 
         // Advanced toggle
         new Setting(containerEl)
-            .setName('Show advanced settings')
+            .setName('Show advanced configuration')
             .addToggle(toggle => toggle
                 .setValue(this.showAdvanced)
                 .onChange(value => {
@@ -301,11 +303,23 @@ class DailyNewsSettingTab extends PluginSettingTab {
                 .setName('Minimum content length')
                 .setDesc('Minimum length for news snippets to be considered')
                 .addText(text => text
-                    .setPlaceholder('120')
+                    .setPlaceholder('80')
                     .setValue(this.plugin.settings.minContentLength.toString())
                     .onChange(async (value) => {
                         const parsedValue = parseInt(value);
-                        this.plugin.settings.minContentLength = isNaN(parsedValue) ? 120 : parsedValue;
+                        this.plugin.settings.minContentLength = isNaN(parsedValue) ? 80 : parsedValue;
+                        await this.plugin.saveSettings();
+                    }));
+                    
+            new Setting(containerEl)
+                .setName('Quality threshold')
+                .setDesc('Minimum quality score for articles (1-10, lower = more results)')
+                .addSlider(slider => slider
+                    .setLimits(1, 8, 1)
+                    .setValue(this.plugin.settings.qualityThreshold)
+                    .setDynamicTooltip()
+                    .onChange(async (value) => {
+                        this.plugin.settings.qualityThreshold = value;
                         await this.plugin.saveSettings();
                     }));
 
@@ -403,99 +417,84 @@ export default class DailyNewsPlugin extends Plugin {
     }
 
     async fetchNews(topic: string): Promise<NewsItem[]> {
-        // Build an optimized search query for quality results
-        let searchQuery = this.buildOptimizedQuery(topic);
+        const startTime = Date.now();
+        // console.log(`Starting news fetch for ${topic}`);
         
         // Get appropriate date range parameter
         const dateRangeParam = this.settings.dateRange.match(/^[dw]\d+$/) ? 
             this.settings.dateRange : 'd2';
             
-        // Multi-phase search strategy for maximum quality
-        let allNews: NewsItem[] = [];
-        const maxResults = this.settings.maxSearchResults;
+        // Simplified search strategy - fetch in a single batch with multiple query variations
+        const allNews: NewsItem[] = [];
+        const searchResults: { [key: string]: NewsItem[] } = {};
         
-        // Phase 1: Search high-quality sources first
-        console.log(`Fetching prioritized news for ${topic}`);
-        const highQualityNews = await this.fetchPrioritizedNews(searchQuery, dateRangeParam, true, 10);
-        allNews = [...highQualityNews];
-        console.log(`Found ${highQualityNews.length} high-quality results`);
+        // Define search queries with descriptive names
+        const queries = {
+            standard: this.buildOptimizedQuery(topic),
+            specific: this.createSpecificQuery(topic),
+            broad: `${topic} news recent important developments`,
+            general: `${topic} latest significant news`
+        };
         
-        // Phase 2: Try specific search terms variant if we need more results
-        if (allNews.length < maxResults / 2) {
-            // Create a more specific query to target real news articles
-            const specificQuery = this.createSpecificQuery(topic);
-            console.log(`Using specific query: ${specificQuery}`);
-            
-            const specificNews = await this.fetchPrioritizedNews(specificQuery, dateRangeParam, false, 10);
-            
-            // Add non-duplicate specific news
-            for (const item of specificNews) {
+        // Maximum results per query to avoid excessive API usage
+        const maxResultsPerQuery = Math.min(20, this.settings.maxSearchResults / 2);
+        
+        // Fetch results for each query type in parallel
+        await Promise.all(Object.entries(queries).map(async ([queryType, queryString]) => {
+            try {
+                // console.log(`Fetching ${queryType} news for ${topic} with query: ${queryString}`);
+                const results = await this.fetchNewsFromGoogle(
+                    queryString, 
+                    dateRangeParam, 
+                    queryType === 'standard', // Prioritize quality for standard query
+                    Math.ceil(maxResultsPerQuery)
+                );
+                searchResults[queryType] = results;
+                // console.log(`Found ${results.length} results for ${queryType} query`);
+            } catch (error) {
+                console.error(`Error fetching ${queryType} news:`, error);
+                searchResults[queryType] = [];
+            }
+        }));
+        
+        // Combine results while avoiding duplicates
+        for (const [queryType, results] of Object.entries(searchResults)) {
+            for (const item of results) {
                 if (!allNews.some(existing => existing.link === item.link)) {
                     allNews.push(item);
                 }
             }
-            console.log(`Added ${specificNews.length} results from specific query`);
         }
         
-        // Phase 3: General search if we still need more
-        if (allNews.length < maxResults) {
-            const remainingCount = maxResults - allNews.length;
-            console.log(`Fetching up to ${remainingCount} more general results`);
+        // console.log(`Total collected news items: ${allNews.length}`);
+        
+        // Try adaptive filtering with gradually decreasing strictness
+        let filteredNews: NewsItem[] = [];
+        let attemptCount = 0;
+        const maxAttempts = 4;
+        let qualityThreshold = this.settings.strictQualityFiltering ? 
+                              this.settings.qualityThreshold + 1 : 
+                              this.settings.qualityThreshold;
+        let minContentLength = this.settings.minContentLength;
+        
+        while (filteredNews.length < 3 && attemptCount < maxAttempts) {
+            // console.log(`Filtering attempt ${attemptCount+1} with threshold ${qualityThreshold} and min length ${minContentLength}`);
             
-            const regularNews = await this.fetchPrioritizedNews(searchQuery, dateRangeParam, false, remainingCount);
+            filteredNews = this.applyQualityFilters(allNews, qualityThreshold, minContentLength);
             
-            // Add non-duplicate regular news
-            for (const item of regularNews) {
-                if (!allNews.some(existing => existing.link === item.link)) {
-                    allNews.push(item);
-                }
+            // If we don't have enough results, try more lenient filtering
+            if (filteredNews.length < 3) {
+                qualityThreshold = Math.max(1, qualityThreshold - 1);
+                minContentLength = Math.max(30, minContentLength - 20);
+                attemptCount++;
             }
-            console.log(`Added ${regularNews.length} results from general search`);
         }
         
-        console.log(`Total collected news items before filtering: ${allNews.length}`);
-        
-        // Apply quality filtering - stricter if enabled
-        let filteredNews = this.applyQualityFilters(allNews);
-        console.log(`After filtering: ${filteredNews.length} items remain`);
-        
-        // If we have too few results after filtering, try a broader search strategy
-        if (filteredNews.length < 3) {
-            console.log(`Too few results after filtering, trying broader search...`);
-            
-            // Try different date ranges and broader terms
-            const broaderQueries = [
-                { query: `${topic} latest developments important news`, dateRange: 'w1' },
-                { query: `${topic} significant news recent`, dateRange: 'w1' },
-                { query: `${topic} major news developments`, dateRange: 'w2' }
-            ];
-            
-            for (const {query, dateRange} of broaderQueries) {
-                if (filteredNews.length >= 3) break;
-                
-                console.log(`Trying broader query: ${query} with range ${dateRange}`);
-                const broaderNews = await this.fetchPrioritizedNews(query, dateRange, false, 10);
-                
-                if (broaderNews.length > 0) {
-                    // Use less restrictive filtering
-                    const lessStrictFiltering = this.settings.strictQualityFiltering;
-                    this.settings.strictQualityFiltering = false;
-                    
-                    const broaderFiltered = this.applyQualityFilters(broaderNews);
-                    
-                    // Restore original setting
-                    this.settings.strictQualityFiltering = lessStrictFiltering;
-                    
-                    // Add non-duplicate broader news
-                    for (const item of broaderFiltered) {
-                        if (!filteredNews.some(existing => existing.link === item.link)) {
-                            filteredNews.push(item);
-                        }
-                    }
-                    
-                    console.log(`Added ${broaderFiltered.length} items from broader search`);
-                }
-            }
+        // Last resort: if we still have no results, just take the highest scored items
+        if (filteredNews.length === 0 && allNews.length > 0) {
+            // console.log("No results after filtering attempts, using top-scored items as fallback");
+            allNews.sort((a, b) => (b.qualityScore || 0) - (a.qualityScore || 0));
+            filteredNews = allNews.slice(0, this.settings.resultsPerTopic);
         }
         
         // Sort by quality score
@@ -503,77 +502,63 @@ export default class DailyNewsPlugin extends Plugin {
         
         // Limit to the configured number of results
         const finalResults = filteredNews.slice(0, this.settings.resultsPerTopic);
-        console.log(`Final results for ${topic}: ${finalResults.length} items`);
+        
+        const elapsedTime = (Date.now() - startTime) / 1000;
+        // console.log(`Fetch completed for ${topic}: ${finalResults.length} items in ${elapsedTime.toFixed(1)}s`);
         
         return finalResults;
     }
     
-    // Create a more specific query targeting real news articles
-    private createSpecificQuery(topic: string): string {
-        const lowercaseTopic = topic.toLowerCase();
-        let specificTerms = '"news article" OR "published" OR "reports" OR "announced"';
-        
-        // Add topic-specific terms
-        if (lowercaseTopic.includes('tech')) {
-            specificTerms += ' OR "launched" OR "released" OR "unveiled" OR "introduced"';
-        } else if (lowercaseTopic.includes('business') || lowercaseTopic.includes('finance')) {
-            specificTerms += ' OR "reported earnings" OR "financial results" OR "quarterly" OR "fiscal"';
-        } else if (lowercaseTopic.includes('science')) {
-            specificTerms += ' OR "study finds" OR "researchers" OR "scientists" OR "published in"';
-        } else if (lowercaseTopic.includes('health')) {
-            specificTerms += ' OR "study shows" OR "clinical trial" OR "medical journal" OR "health officials"';
-        } else if (lowercaseTopic.includes('world') || lowercaseTopic.includes('polit')) {
-            specificTerms += ' OR "officials said" OR "announced today" OR "government" OR "administration"';
-        }
-        
-        return `${topic} ${specificTerms} -"subscribe" -"sign up" -"advertisement"`;
-    }
-    
+    // Simplified query builder with fewer special cases
     private buildOptimizedQuery(topic: string): string {
         // Base query with the topic
         let query = `${topic} news`;
         
-        // Add topic-specific enhancements
+        // Add topic-specific terms - simplified approach
         const lowercaseTopic = topic.toLowerCase();
         
         if (lowercaseTopic.includes('tech')) {
-            query += ' "latest developments" OR "new research" OR "breakthrough" OR "innovation"';
+            query += ' "latest developments" OR innovation OR launch OR release';
         } else if (lowercaseTopic.includes('world') || lowercaseTopic.includes('global')) {
-            query += ' "international relations" OR "global affairs" OR "diplomatic" OR "policy"';
+            query += ' international OR diplomatic OR policy OR relations';
         } else if (lowercaseTopic.includes('business') || lowercaseTopic.includes('finance')) {
-            query += ' "financial results" OR "market trends" OR "earnings" OR "economic data"';
+            query += ' earnings OR markets OR economy OR financial';
         } else if (lowercaseTopic.includes('science')) {
-            query += ' "discovery" OR "research findings" OR "study results" OR "breakthrough"';
+            query += ' research OR discovery OR study OR breakthrough';
         } else if (lowercaseTopic.includes('health')) {
-            query += ' "medical research" OR "health study" OR "clinical trial" OR "treatment"';
+            query += ' medical OR treatment OR research OR study';
         } else {
             // Generic improvements for other topics
-            query += ' "latest developments" OR "recent events" OR "significant" OR "important"';
+            query += ' recent OR latest OR update OR significant';
         }
         
-        // Add date context to get fresh news
-        query += ' "this week" OR "recent" OR "latest" OR "new" OR "update"';
+        // Add date context but keep it simpler
+        query += ' "this week" OR recent OR latest';
         
-        // Add negative terms to filter out low-quality content
-        query += ' -old -outdated -speculation -rumor';
+        // Add negative terms to filter out obvious low-quality content
+        query += ' -subscription -outdated';
         
         return query;
     }
     
-    private async fetchPrioritizedNews(
+    // Create a more specific query targeting real news articles
+    private createSpecificQuery(topic: string): string {
+        return `${topic} "news article" OR "published" OR "reports" OR "announced"`;
+    }
+    
+    private async fetchNewsFromGoogle(
         query: string, 
         dateRestrict: string, 
         prioritizeQuality: boolean,
         maxResults: number = 10
     ): Promise<NewsItem[]> {
-        // Calculate how many API requests we need to make
-        const requestsNeeded = Math.ceil(maxResults / 10); // Google API max is 10 per request
-        const actualRequests = Math.min(requestsNeeded, 3); // Cap at 3 requests to avoid excessive API usage
+        // Calculate how many API requests we need (Google API max is 10 per request)
+        const requestsNeeded = Math.ceil(maxResults / 10);
+        const actualRequests = Math.min(requestsNeeded, 2); // Cap at 2 requests to avoid API overuse
         
         let allResults: NewsItem[] = [];
         
         for (let i = 0; i < actualRequests; i++) {
-            // Skip further requests if we've already collected enough results
             if (allResults.length >= maxResults) break;
             
             const startIndex = (i * 10) + 1; // Google API starts at 1
@@ -582,28 +567,29 @@ export default class DailyNewsPlugin extends Plugin {
                 key: this.settings.googleApiKey,
                 cx: this.settings.searchEngineId,
                 q: query,
-                num: '10', // Google API max per request
+                num: '10',
                 dateRestrict: dateRestrict,
                 fields: 'items(title,link,snippet,pagemap/metatags/publishedTime,pagemap/metatags/og_site_name)',
-                sort: i === 0 ? 'date' : 'relevance', // First page by date, others by relevance for variety
+                sort: i === 0 ? 'date' : 'relevance', // First page by date for freshness
                 start: startIndex.toString()
             });
             
             // Add site restrictions for higher quality sources if prioritizing quality
             if (prioritizeQuality) {
+                // Combine user preferred domains and quality sources
                 let qualitySources = [...this.settings.preferredDomains];
                 
-                // If user hasn't specified enough preferred domains, add high-quality defaults
+                // Add some quality sources if user hasn't specified enough
                 if (qualitySources.length < 5) {
-                    // Use a rotating subset of quality sources to get more variety
-                    const startIdx = (i * 10) % QUALITY_NEWS_SOURCES.length;
-                    const sourcesToAdd = QUALITY_NEWS_SOURCES.slice(startIdx, startIdx + 15);
+                    // Use a rotating subset of quality sources for variety
+                    const startIdx = (i * 5) % QUALITY_NEWS_SOURCES.length;
+                    const sourcesToAdd = QUALITY_NEWS_SOURCES.slice(startIdx, startIdx + 10);
                     qualitySources = [...qualitySources, ...sourcesToAdd];
                 }
                 
-                if (qualitySources.length > 0) {
-                    // Take a subset of sources to avoid overly long queries
-                    const siteSubset = qualitySources.slice(0, 15);
+                // Take a subset to avoid overly long queries
+                const siteSubset = qualitySources.slice(0, 10);
+                if (siteSubset.length > 0) {
                     const sitesQuery = siteSubset.map(domain => `site:${domain}`).join(' OR ');
                     params.set('q', `${params.get('q')} (${sitesQuery})`);
                 }
@@ -645,7 +631,7 @@ export default class DailyNewsPlugin extends Plugin {
                 
                 // Small delay between requests to be nice to the API
                 if (i < actualRequests - 1) {
-                    await new Promise(r => setTimeout(r, 300));
+                    await new Promise(r => setTimeout(r, 200));
                 }
                 
             } catch (error) {
@@ -657,75 +643,67 @@ export default class DailyNewsPlugin extends Plugin {
         return allResults;
     }
     
+    // Simplified quality scoring with fewer special cases
     private calculateQualityScore(item: SearchItem, domain: string): number {
         let score = 5; // Base score
         
-        // Boost for high-quality sources
+        // Domain quality checks
         if (QUALITY_NEWS_SOURCES.some(source => domain.includes(source))) {
-            score += 2;
+            score += 2; // Boost for known quality sources
         }
         
-        // Boost for preferred domains
         if (this.settings.preferredDomains.some(source => domain.includes(source))) {
-            score += 3;
+            score += 2; // Boost for user's preferred domains
         }
+        
+        // URL quality checks - simplified
+        const url = new URL(item.link);
         
         // Boost for article-like URLs
-        if (/\/article\/|\/story\/|\/news\/|\/\d{4}\/\d{2}\//.test(item.link)) {
-            score += 2;
+        if (/\/article\/|\/story\/|\/news\/|\/\d{4}\/\d{2}\//.test(url.pathname)) {
+            score += 1.5;
         }
         
         // Penalize obvious non-article pages
-        if (new URL(item.link).pathname === "/" || new URL(item.link).pathname.length < 3) {
-            score -= 4; // Likely homepage
+        if (url.pathname === "/" || url.pathname.length < 3) {
+            score -= 3; // Penalize homepages but less severely
         }
         
-        // Penalize category/tag pages
-        if (/\/category\/|\/categories\/|\/topics\/|\/tag\//.test(item.link)) {
-            score -= 3;
-        }
-        
-        // Check for content quality indicators
+        // Content quality indicators - simplified checks
         if (item.snippet) {
-            // Contains concrete data like numbers, dates
+            // Contains concrete data indicators
             if (/\d+%|\d+ percent|\$\d+|\d+ million|\d+ billion/.test(item.snippet)) {
-                score += 1.5;
+                score += 1;
             }
             
-            // Contains quotes (suggests actual reporting)
-            if (/"[^"]{10,}"/.test(item.snippet) || /'[^']{10,}'/.test(item.snippet)) {
-                score += 1.5;
-            }
-            
-            // Contains reporting verbs
-            if (/reported|announced|revealed|published|confirmed|according to/.test(item.snippet)) {
+            // Contains quotes or reporting indicators
+            if (/"[^"]{8,}"/.test(item.snippet) || 
+                /'[^']{8,}'/.test(item.snippet) ||
+                /reported|announced|revealed|published|according to/.test(item.snippet)) {
                 score += 1;
             }
             
             // Longer snippets are usually better
-            if (item.snippet.length > 150) {
-                score += 1;
-            }
-            
-            // Penalize obvious website descriptions
-            if (/is a website|is the official|official site/.test(item.snippet) && item.snippet.length < 120) {
-                score -= 3;
+            if (item.snippet.length > 120) {
+                score += 0.5;
             }
         }
         
         // Penalize excluded domains
         if (this.settings.excludedDomains.some(excluded => domain.includes(excluded))) {
-            score -= 4;
+            score -= 3;
         }
         
         // Clamp the score between 1-10
         return Math.max(1, Math.min(10, score));
     }
     
-    private applyQualityFilters(newsItems: NewsItem[]): NewsItem[] {
-        // Determine quality threshold based on settings
-        const qualityThreshold = this.settings.strictQualityFiltering ? 5 : 4;
-        
+    // Simplified filtering with adaptive thresholds
+    private applyQualityFilters(
+        newsItems: NewsItem[], 
+        qualityThreshold: number = 3,
+        minContentLength: number = 80
+    ): NewsItem[] {
         return newsItems.filter(item => {
             try {
                 // Skip items without essential data
@@ -743,97 +721,41 @@ export default class DailyNewsPlugin extends Plugin {
                 }
                 
                 // Minimum content length check
-                if (item.snippet.length < this.settings.minContentLength) {
+                if (item.snippet.length < minContentLength) {
                     return false;
                 }
                 
-                // URL quality checks
-                // Reject homepages and very short paths
-                if (url.pathname === "/" || url.pathname === "" || url.pathname.length < 3) {
+                // Relaxed URL checks - only reject obvious non-articles
+                if (url.pathname === "/" && url.search === "") {
+                    return false; // Reject root domain with no query
+                }
+                
+                // Basic content quality - reject obvious website descriptions
+                if (/is a website|is the official|official site of/.test(item.snippet) && 
+                    item.snippet.length < 100) {
                     return false;
                 }
                 
-                // Reject category pages, tag pages, search results
-                if (/\/category\/|\/categories\/|\/topics\/|\/tag\/|\/tags\/|\/search\//.test(url.pathname)) {
-                    return false;
-                }
-                
-                // Check for signs of actual article URLs
-                const hasArticlePattern = /\/article\/|\/story\/|\/news\/|\/\d{4}\/\d{2}\/|[-]\d+\.html/.test(url.pathname);
-                
-                // Content quality checks
-                
-                // Filter out obvious website descriptions
-                if (/is a website|is the official|official site of|homepage of/.test(item.snippet)) {
-                    return false;
-                }
-                
-                // Filter out content that's just a website description
-                if (/provides news|latest news and|breaking news from|news and information|coverage of|news from around/.test(item.snippet) && 
-                    item.snippet.length < 150) {
-                    return false;
-                }
-                
-                // Filter out obvious list articles if strict filtering is on
-                if (this.settings.strictQualityFiltering && 
-                    /top \d+|best \d+|\d+ ways|\d+ things|list of/.test(item.title)) {
-                    return false;
-                }
-                
-                // Title quality checks - reject obviously low-quality content
-                if (/click here|you won't believe|shocking|amazing|must see|unbelievable|mind-blowing/.test(item.title)) {
-                    return false;
-                }
-                
-                // Special case: If strict filtering is enabled, require article patterns or high quality
-                if (this.settings.strictQualityFiltering) {
-                    // Either must be from preferred domain, have article pattern, or high quality
-                    const isPreferredDomain = this.settings.preferredDomains.some(
-                        preferred => domain.includes(preferred)
-                    );
-                    
-                    const isQualitySource = QUALITY_NEWS_SOURCES.some(
-                        source => domain.includes(source)
-                    );
-                    
-                    // If it's not from a preferred domain and doesn't have article pattern
-                    // and isn't from a known quality source, require higher quality
-                    if (!isPreferredDomain && !hasArticlePattern && !isQualitySource) {
-                        // Must have better than average quality score
-                        return (item.qualityScore || 0) >= 6;
-                    }
-                }
-                
-                // Base quality threshold check
+                // Basic quality threshold check is the main filter now
                 return (item.qualityScore || 0) >= qualityThreshold;
                 
             } catch (error) {
-                console.error("Error in quality filtering:", error);
+                // console.error("Error in quality filtering:", error);
                 return false; // Reject any item that causes errors
             }
         });
     }
     
+    // Simplified content cleaning
     private cleanNewsContent(text: string): string {
         if (!text) return '';
         
-        let cleaned = text;
-        
-        // Remove common ad patterns
-        AD_PATTERNS.forEach(pattern => {
-            cleaned = cleaned.replace(new RegExp(pattern, 'gi'), '');
-        });
-        
-        // Remove URLs in the middle of text
-        cleaned = cleaned.replace(/https?:\/\/\S+/g, '');
-        
-        // Remove email addresses
-        cleaned = cleaned.replace(/\S+@\S+\.\S+/g, '');
-        
-        // Remove excess whitespace
-        cleaned = cleaned.replace(/\s+/g, ' ').trim();
-        
-        return cleaned;
+        // Simple regex pattern for cleaning - combined for better performance
+        return text
+            .replace(/https?:\/\/\S+/g, '') // Remove URLs
+            .replace(/\S+@\S+\.\S+/g, '')   // Remove emails
+            .replace(/\s+/g, ' ')           // Normalize whitespace
+            .trim();                         // Trim excess whitespace
     }
 
     async generateSummary(newsItems: NewsItem[], topic: string): Promise<string> {
@@ -848,7 +770,7 @@ export default class DailyNewsPlugin extends Plugin {
             const isQualitySource = QUALITY_NEWS_SOURCES.some(source => domain.includes(source));
             
             // Format with additional quality metadata
-            return `=== NEWS ITEM (Quality Score: ${item.qualityScore}/10) ===\n` +
+            return `=== NEWS ITEM ===\n` +
                 `Title: ${item.title}\n` +
                 `Source: ${item.source || domain}\n` +
                 `URL: ${item.link}\n` +
@@ -858,24 +780,24 @@ export default class DailyNewsPlugin extends Plugin {
         }).join('\n\n');
 
         // Get appropriate prompt
-        const prompt = this.getAIPrompt(enhancedNewsText, this.settings.outputFormat);
+        const prompt = this.getAIPrompt(enhancedNewsText, topic, this.settings.outputFormat);
 
         try {
             // Initialize the Gemini API
             const genAI = new GoogleGenerativeAI(this.settings.geminiApiKey);
             
-            // Use the model "gemini-2.0-flash"
-            const modelName ="gemini-2.0-flash";
+            // Use the model "gemini-2.0-flash" for better performance
+            const modelName = "gemini-2.0-flash";
                 
-            console.log(`Using model ${modelName} for summarization`);
+            // console.log(`Using model ${modelName} for summarization`);
             
             const model = genAI.getGenerativeModel({ 
                 model: modelName,
                 generationConfig: {
-                    temperature: 0.2, // Lower temperature for more factual, focused output
+                    temperature: 0.2, // Lower temperature for more factual output
                     topP: 0.95,
                     topK: 40,
-                    maxOutputTokens: 4096 // Ensure we have enough tokens for detailed output
+                    maxOutputTokens: 4096
                 }
             });
             
@@ -894,85 +816,57 @@ export default class DailyNewsPlugin extends Plugin {
             console.error('Failed to generate summary:', error);
             
             // Create a fallback summary with raw data
-            return `**Summary Generation Error**\n\nUnable to generate an AI summary for ${topic}. Here are the top news items:\n\n${
-                newsItems.slice(0, 5).map(item => 
-                    `- **${item.title}** - ${item.snippet?.substring(0, 150)}... [${item.source || new URL(item.link).hostname}](${item.link})`
-                ).join('\n\n')
-            }`;
+            return this.createFallbackSummary(newsItems, topic);
         }
     }
 
-    private getAIPrompt(newsText: string, format: 'detailed' | 'concise'): string {
+    // Fallback summary when AI fails
+    private createFallbackSummary(newsItems: NewsItem[], topic: string): string {
+        return `**Summary for ${topic}**\n\n${
+            newsItems.slice(0, 5).map(item => 
+                `- **${item.title}** - ${item.snippet?.substring(0, 150)}... [${item.source || new URL(item.link).hostname}](${item.link})`
+            ).join('\n\n')
+        }`;
+    }
+
+    private getAIPrompt(newsText: string, topic: string, format: 'detailed' | 'concise'): string {
         // If user has custom prompt enabled and provided one, use it
         if (this.settings.useCustomPrompt && this.settings.customPrompt) {
             return this.settings.customPrompt.replace('{{NEWS_TEXT}}', newsText);
         }
         
-        // Otherwise use our enhanced prompt
-        const basePrompt = `You are a professional news editor creating a high-quality news briefing. Analyze these news articles and provide a substantive summary:
+        // Otherwise use simplified prompt
+        const basePrompt = `Analyze these news articles about ${topic} and provide a substantive summary:
 
 ${newsText}
 
-CRITICAL GUIDELINES - READ CAREFULLY:
-1. Focus EXCLUSIVELY on real, substantial news with concrete developments, facts, and data points
-2. IGNORE any content that:
-   - Simply describes what a website or source does rather than actual news
-   - Contains vague generalities without specific facts
-   - Is obviously a website description or landing page
-   - Is too short, lacks concrete information, or is primarily promotional
-3. For EACH news item include the SOURCE and link in markdown format: [Source Name](URL)
-4. Use specific dates rather than relative time references like "yesterday" or "last week"
-5. PRIORITIZE news with:
-   - Specific details (numbers, names, locations, dates)
-   - Direct quotes from relevant figures
-   - Statistical evidence or research results
-   - Substantive developments or announcements
-6. If the content lacks sufficient substance, state "No substantive news found on this topic" rather than creating low-quality summaries
-
-IMPORTANT QUALITY CRITERIA - Each news item MUST contain:
-- At least one specific fact, figure, statistic, or direct quote
-- Attribution to a specific source or organization
-- Clear relevance to the topic
-- Substantial, concrete information (not just vague statements)
-
-EXAMPLES OF LOW-QUALITY CONTENT TO EXCLUDE:
-- "BBC offers the latest news and information from around the world."
-- "TechCrunch provides technology news, analysis and startup information."
-- "New York Times covers national and international news and opinion."
-- Any content that merely lists headlines without substantive information
-
-EXAMPLES OF HIGH-QUALITY CONTENT TO INCLUDE:
-- "Intel announced a 15% increase in chip production capacity with a $20 billion investment in Arizona facilities, creating 3,000 jobs by 2025, according to CEO Pat Gelsinger."
-- "Climate scientists reported a 1.2°C increase in global average temperatures since pre-industrial times, with 2024 on track to be the warmest year on record according to data from NOAA."`;
+KEY REQUIREMENTS:
+1. Focus on concrete developments, facts, and data
+2. For each news item include the SOURCE in markdown format: [Source](URL)
+3. Use specific dates rather than relative time references
+4. Prioritize news with specific details (numbers, names, quotes)
+5. If content lacks substance, state "Limited substantive news found on ${topic}"`;
 
         // Add format-specific instructions
         if (format === 'detailed') {
             return basePrompt + `
 
-Please format your summary as follows (using SPECIFIC facts, data, and details for each point - no general statements):
+Format your summary with these sections:
 
 ### Key Developments
-- **[Specific clear headline with key detail]**: Concrete facts including specific details (names, numbers, dates, locations). Each bullet MUST include at least one specific statistic, percentage, or direct quote. [Source](URL)
-- **[Specific clear headline with key detail]**: Concrete facts including specific details (names, numbers, dates, locations). Each bullet MUST include at least one specific statistic, percentage, or direct quote. [Source](URL)
+- **[Clear headline with key detail]**: Concrete facts with specific details. [Source](URL)
+- **[Clear headline with key detail]**: Concrete facts with specific details. [Source](URL)
 
 ### Analysis & Context
-[Provide context, implications, or background for the most significant developments. Include relevant history, expert perspectives, or trend analysis using specific details.]
-
-### Notable Data Points or Quotes
-• "[Include a DIRECT, verbatim quote from the news that provides substantial insight]" — [Named Source, Title/Organization]
-• [Include a specific, significant data point, statistic, percentage or numerical fact that illustrates the news importance]`;
+[Provide context, implications, or background for the most significant developments]`;
         } else {
             return basePrompt + `
 
-Please format your summary EXCLUSIVELY with bullets containing CONCRETE, SPECIFIC facts (not generalizations):
+Format your summary as bullet points with concrete facts:
 
-- **[Specific clear headline with key detail]**: Concrete facts including specific numbers, statistics, percentages, or direct quotes. [Source](URL)
-- **[Specific clear headline with key detail]**: Concrete facts including specific numbers, statistics, percentages, or direct quotes. [Source](URL)
-- **[Specific clear headline with key detail]**: Concrete facts including specific numbers, statistics, percentages, or direct quotes. [Source](URL)
-
-If there's an important direct quote from a key figure or a significant data point worth highlighting, include it at the end, clearly attributed to its source with exact citation.
-
-IMPORTANT: If the news lacks substantial, specific content with concrete facts, simply state "No substantive news with concrete details found on this topic" rather than creating vague summaries.`;
+- **[Clear headline with key detail]**: Concrete facts with specific details. [Source](URL)
+- **[Clear headline with key detail]**: Concrete facts with specific details. [Source](URL)
+- **[Clear headline with key detail]**: Concrete facts with specific details. [Source](URL)`;
         }
     }
 
