@@ -182,6 +182,9 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Changelog
 
+### 1.1.1
+- Optimize news flitering
+
 ### 1.1.0
 - Simplify configuration options
 - Improve summarization and layout
