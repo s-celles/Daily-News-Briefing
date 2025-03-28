@@ -182,6 +182,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Changelog
 
+### 1.2.0
+- Fix the release issue
+- Optimize console log and performance
+
 ### 1.1.1
 - Optimize news flitering
 
