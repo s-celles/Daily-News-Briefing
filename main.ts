@@ -452,7 +452,7 @@ export default class DailyNewsPlugin extends Plugin {
                 searchResults[queryType] = results;
                 // console.log(`Found ${results.length} results for ${queryType} query`);
             } catch (error) {
-                console.error(`Daily News Briefing: Error fetching ${queryType} news:`, error);
+                console.error(`Error fetching ${queryType} news:`, error);
                 searchResults[queryType] = [];
             }
         }));
@@ -635,7 +635,7 @@ export default class DailyNewsPlugin extends Plugin {
                 }
                 
             } catch (error) {
-                // console.error(`Search API error on page ${i+1}:`, error);
+                console.error(`Search API error on page ${i+1}:`, error);
                 // Continue to next page despite errors
             }
         }
@@ -813,7 +813,7 @@ export default class DailyNewsPlugin extends Plugin {
             // Return the summary text
             return result.response.text();
         } catch (error) {
-            console.error('Daily News Briefing: Failed to generate summary:', error);
+            console.error('Failed to generate summary:', error);
             
             // Create a fallback summary with raw data
             return this.createFallbackSummary(newsItems, topic);
@@ -886,6 +886,12 @@ Format your summary as bullet points with concrete facts:
         
         try {
             new Notice('Generating daily news...');
+
+            // Check if the file already exists
+            if (await this.app.vault.adapter.exists(`${this.settings.archiveFolder}/Daily News - ${date}.md`)) {
+                new Notice('Daily news already generated for today.', 3000);
+                return;
+            }
             
             // Basic header content
             let content = `*Generated at ${new Date().toLocaleTimeString()}*\n\n`;
@@ -915,7 +921,7 @@ Format your summary as bullet points with concrete facts:
                     }
 
                 } catch (topicError) {
-                    console.error(`Daily News Briefing: Error processing topic ${topic}:`, topicError);
+                    console.error(`Error processing topic ${topic}:`, topicError);
                     content += `Error retrieving news for ${topic}. Please try again later.\n\n`;
                 }
             }
@@ -926,7 +932,7 @@ Format your summary as bullet points with concrete facts:
                     await this.app.vault.createFolder(this.settings.archiveFolder);
                 }
             } catch (folderError) {
-                console.error("Daily News Briefing: Failed to create folder:", folderError);
+                console.error("Failed to create folder:", folderError);
             }
 
             const fileName = `${this.settings.archiveFolder}/Daily News - ${date}.md`;
@@ -936,7 +942,7 @@ Format your summary as bullet points with concrete facts:
                 new Notice('Daily news generated successfully', 3000);
             }
         } catch (error) {
-            console.error('Daily News Briefing: Failed to generate news:', error);
+            console.error('Failed to generate news:', error);
             new Notice('Failed to generate news. Check console for details.', 5000);
         }
     }

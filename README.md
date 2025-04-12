@@ -91,28 +91,41 @@ To use this plugin, you'll need:
 ## Example Output
 
 ```markdown
-# Daily News - 2024-02-25
+# Daily News - 2025-04-12
+
+*Generated at 09:53:35*
+
+---
 
 ## Table of Contents
-- [Technology](#technology)
+
+- [AI](#ai)
 - [World News](#world%20news)
 
-## Technology
+---
+
+## AI
 
 ### Key Developments
-- **AI Breakthrough**: Researchers at MIT demonstrated a new quantum processor achieving 24x processing speed improvements with their 128-qubit system. [Nature](https://nature.com/article)
-- **Intel Expands Production**: Intel announced a 15% increase in chip production capacity with a $20 billion investment in Arizona facilities, creating 3,000 jobs by 2025. [Reuters](https://reuters.com/article)
+- **[Apple's AI Features Face Challenges Amidst Tariff Concerns]**: According to a *New York Times* report from April 11, 2025, Apple's AI headset sales have been disappointing. Furthermore, the AI's notification summaries have misrepresented news reports. These issues are compounded by the impact of Trump's tariffs. [Source](https://www.nytimes.com/2025/04/11/technology/apple-issues-trump-tariffs.html)
+- **[Ohio University Launches Artificial Intelligence Bachelor of Science Degree]**: Ohio University's Russ College of Engineering and Technology has launched a new Bachelor of Science degree program in Artificial Intelligence. [Source](https://www.ohio.edu/engineering/)
 
 ### Analysis & Context
-The quantum computing advancements represent a significant step toward practical quantum advantage in molecular simulation applications. This comes as competition intensifies between IBM, Google, and newer startups in the quantum space.
+The *New York Times* article suggests that Apple is facing challenges on multiple fronts. The combination of disappointing AI product performance and the economic pressures from tariffs paints a concerning picture for the company's innovation efforts. The launch of an AI degree program at Ohio University reflects the growing importance of AI in academia and industry, indicating a broader trend of investment in AI education and research. The Alabama Public Radio segment and the Nature article, while relevant to the broader news landscape, did not contain specific, substantive details about AI developments.
 
-### Notable Data Points or Quotes
-• "This benchmark represents a critical threshold for quantum utility in real-world applications" — Dr. Sarah Chen, Lead Researcher
-• 128-qubit system demonstrated stable operations for 300 microseconds, a 4x improvement over previous systems
+---
 
 ## World News
 
-**Climate Agreement**: EU announces new carbon reduction targets of 55% by 2030, affecting industrial sectors including steel, cement, and energy production. [Reuters](https://reuters.com/article)
+### Key Developments
+- **[European Countries Pledge Billions in Military Support for Ukraine]**: European countries have pledged billions in military support for Ukraine. A US envoy met with Putin. [Source](https://apnews.com/world-news)
+- **[Israelis Mark Passover Amid Gaza Captive Crisis]**: Israelis are observing Passover while hoping for the release of captives held in Gaza. [Source](https://apnews.com/world-news)
+- **[UN Reports Israeli Military Actions Undermining Syrian Political Transition]**: On April 10, 2025, the United Nations reported that recent military actions by Israel are undermining Syria's political transition and the chances of a new security pact between the two countries. [Source](https://www.un.org/en/)
+- **[NASA Focuses on World Science and Inspiring Students]**: NASA is focusing on world science and inspiring students across the United States to pursue scientific fields. [Source](https://nasa.gov/news/recently-published/)
+- **[Rare Ancient DNA Discovery]**: Nature.com reports on the discovery of rare ancient DNA. [Source](https://www.nature.com/news)
+
+### Analysis & Context
+The news items highlight ongoing geopolitical tensions, particularly the situation in Ukraine and the Israeli-Syrian conflict. The significant military support pledged to Ukraine underscores the continued international focus on the conflict. The UN report regarding Israeli actions and the Syrian political transition suggests a complex and potentially destabilizing situation in the region. The Passover observance in Israel, coupled with the ongoing hostage situation in Gaza, underscores the humanitarian dimension of the Israeli-Palestinian conflict. The science news from Nature.com and NASA's focus on inspiring students indicate continued advancements and outreach efforts in the scientific community.
 ```
 
 ## Tips for Best Results
@@ -181,6 +194,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Contributors and testers
 
 ## Changelog
+
+### 1.2.1
+- Avoid generating duplicate daily summary
+- Update README.md
 
 ### 1.2.0
 - Fix the release issue
