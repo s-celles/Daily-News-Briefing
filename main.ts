@@ -985,7 +985,7 @@ Format your summary as bullet points with concrete facts:
                 }
             }
         } catch (error) {
-            console.error('Error opening or creating daily news:', error);
+            // console.error('Error opening or creating daily news:', error);
             new Notice('Unable to open or create daily news');
         }
     }
@@ -1008,36 +1008,36 @@ Format your summary as bullet points with concrete facts:
         try {
             // Normalize the path for consistent handling
             filePath = this.normalizePath(filePath);
-            console.log(`Trying to open file at path: ${filePath}`);
+            // console.log(`Trying to open file at path: ${filePath}`);
             
             // Try to get the file from the vault
             const file = this.app.vault.getAbstractFileByPath(filePath);
             
             if (file instanceof TFile) {
-                console.log(`File found, opening: ${file.path}`);
+                // console.log(`File found, opening: ${file.path}`);
                 // Try to open the file using workspace API
                 this.app.workspace.openLinkText(file.path, '', false)
                     .then(() => {
                         new Notice('Opened today\'s news briefing');
                     })
                     .catch(error => {
-                        console.error('Failed to open file with openLinkText:', error);
+                        // console.error('Failed to open file with openLinkText:', error);
                         // Fallback: Try to actively focus the leaf after opening
                         this.app.workspace.getLeaf(false).openFile(file)
                             .then(() => {
                                 new Notice('Opened today\'s news briefing (fallback method)');
                             })
                             .catch(e => {
-                                console.error('Both file opening methods failed:', e);
+                                // console.error('Both file opening methods failed:', e);
                                 new Notice('Unable to open news file. Try opening it manually.');
                             });
                     });
             } else {
-                console.error(`File not found in vault at: ${filePath}`);
+                // console.error(`File not found in vault at: ${filePath}`);
                 new Notice(`Unable to find news file. Please check path: ${filePath}`);
             }
         } catch (error) {
-            console.error('Error in openNewsFile:', error);
+            // console.error('Error in openNewsFile:', error);
             new Notice('Error opening news file');
         }
     }
