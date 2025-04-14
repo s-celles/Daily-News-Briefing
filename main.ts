@@ -392,6 +392,11 @@ export default class DailyNewsPlugin extends Plugin {
         // Add settings tab
         this.addSettingTab(new DailyNewsSettingTab(this.app, this));
 
+        // Add sidebar button
+        this.addRibbonIcon('newspaper', 'Daily News Briefing', async () => {
+            await this.openOrCreateDailyNews();
+        });
+
         // Schedule daily news generation
         this.registerInterval(
             window.setInterval(() => this.checkAndGenerateNews(), 60000)
@@ -886,11 +891,15 @@ Format your summary as bullet points with concrete facts:
         
         try {
             new Notice('Generating daily news...');
+            
+            // Normalize the path
+            const archiveFolder = this.normalizePath(this.settings.archiveFolder);
+            const fileName = `${archiveFolder}/Daily News - ${date}.md`;
 
             // Check if the file already exists
-            if (await this.app.vault.adapter.exists(`${this.settings.archiveFolder}/Daily News - ${date}.md`)) {
-                new Notice('Daily news already generated for today.', 3000);
-                return;
+            if (await this.app.vault.adapter.exists(fileName)) {
+                new Notice('Daily news already generated for today.', 5000);
+                return fileName; // Return the path even when file exists
             }
             
             // Basic header content
@@ -928,22 +937,108 @@ Format your summary as bullet points with concrete facts:
 
             // Create folder if it doesn't exist
             try {
-                if (!(await this.app.vault.adapter.exists(this.settings.archiveFolder))) {
-                    await this.app.vault.createFolder(this.settings.archiveFolder);
+                if (!(await this.app.vault.adapter.exists(archiveFolder))) {
+                    await this.app.vault.createFolder(archiveFolder);
                 }
             } catch (folderError) {
                 console.error("Failed to create folder:", folderError);
             }
 
-            const fileName = `${this.settings.archiveFolder}/Daily News - ${date}.md`;
             await this.app.vault.create(fileName, content);
             
             if (this.settings.enableNotifications) {
                 new Notice('Daily news generated successfully', 3000);
             }
+            
+            console.log(`Created news file at: ${fileName}`);
+            return fileName;
+            
         } catch (error) {
             console.error('Failed to generate news:', error);
             new Notice('Failed to generate news. Check console for details.', 5000);
+            return null;
+        }
+    }
+
+    // Improved method to open or create daily news
+    async openOrCreateDailyNews() {
+        const date = new Date().toISOString().split('T')[0];
+        const filePath = this.normalizePath(`${this.settings.archiveFolder}/Daily News - ${date}.md`);
+        
+        try {
+            // Check if file exists
+            const fileExists = await this.app.vault.adapter.exists(filePath);
+            
+            if (fileExists) {
+                // If exists, open the file with more reliable method
+                this.openNewsFile(filePath);
+            } else {
+                // If not exists, generate new one
+                new Notice('Generating today\'s news briefing...');
+                const createdPath = await this.generateDailyNews();
+                
+                if (createdPath) {
+                    // Increased timeout for file system operations to complete
+                    setTimeout(() => {
+                        this.openNewsFile(createdPath);
+                    }, 1000); // Increased delay to ensure file is created and indexed
+                }
+            }
+        } catch (error) {
+            console.error('Error opening or creating daily news:', error);
+            new Notice('Unable to open or create daily news');
+        }
+    }
+
+    // Helper method to normalize paths for Obsidian's file system
+    private normalizePath(path: string): string {
+        // Ensure path doesn't start with a slash
+        if (path.startsWith('/')) {
+            path = path.substring(1);
+        }
+        
+        // Replace any double slashes with single slashes
+        path = path.replace(/\/+/g, '/');
+        
+        return path;
+    }
+
+    // Helper method to open news file with multiple fallback approaches
+    private openNewsFile(filePath: string) {
+        try {
+            // Normalize the path for consistent handling
+            filePath = this.normalizePath(filePath);
+            console.log(`Trying to open file at path: ${filePath}`);
+            
+            // Try to get the file from the vault
+            const file = this.app.vault.getAbstractFileByPath(filePath);
+            
+            if (file instanceof TFile) {
+                console.log(`File found, opening: ${file.path}`);
+                // Try to open the file using workspace API
+                this.app.workspace.openLinkText(file.path, '', false)
+                    .then(() => {
+                        new Notice('Opened today\'s news briefing');
+                    })
+                    .catch(error => {
+                        console.error('Failed to open file with openLinkText:', error);
+                        // Fallback: Try to actively focus the leaf after opening
+                        this.app.workspace.getLeaf(false).openFile(file)
+                            .then(() => {
+                                new Notice('Opened today\'s news briefing (fallback method)');
+                            })
+                            .catch(e => {
+                                console.error('Both file opening methods failed:', e);
+                                new Notice('Unable to open news file. Try opening it manually.');
+                            });
+                    });
+            } else {
+                console.error(`File not found in vault at: ${filePath}`);
+                new Notice(`Unable to find news file. Please check path: ${filePath}`);
+            }
+        } catch (error) {
+            console.error('Error in openNewsFile:', error);
+            new Notice('Error opening news file');
         }
     }
 }

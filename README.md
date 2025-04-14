@@ -195,6 +195,11 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Changelog
 
+### 1.3.0
+- Add sidebar button to improve UX which can:
+   - Create today's news summary if does not exist
+   - Open today's news summary if exists
+
 ### 1.2.1
 - Avoid generating duplicate daily summary
 - Update README.md
