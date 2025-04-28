@@ -144,7 +144,7 @@ class DailyNewsSettingTab extends PluginSettingTab {
         containerEl.createEl('p', {text: 'API keys are required for fetching and summarizing news.'});
 
         new Setting(containerEl)
-            .setName('Google API key')
+            .setName('Google Search API key')
             .setDesc('Your Google Custom Search API key')
             .addText(text => text
                 .setPlaceholder('Enter API key')
@@ -155,7 +155,7 @@ class DailyNewsSettingTab extends PluginSettingTab {
                 }));
 
         new Setting(containerEl)
-            .setName('Search engine ID')
+            .setName('Google Search engine ID')
             .setDesc('Your Google Custom Search Engine ID')
             .addText(text => text
                 .setPlaceholder('Enter search engine ID')
