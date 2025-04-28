@@ -195,6 +195,9 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Changelog
 
+### 1.3.1
+- Rename settings to avoid confusion
+
 ### 1.3.0
 - Add sidebar button to improve UX which can:
    - Create today's news summary if does not exist
