@@ -5,26 +5,26 @@ Get AI-powered daily news summaries directly in your Obsidian vault. Stay inform
 ## Features
 
 - 🤖 AI-powered news summarization using Google's Gemini 2.0 Flash model or Perplexity's Sonar
-- 📅 Automated daily news collection
+- 📅 Automated daily news collection with intelligent scheduling
 - 🎯 Customizable topics and news sources
-- 🔍 Advanced multi-phase search strategy with quality scoring
+- 🔍 Advanced multi-phase search strategy with quality scoring and throttled API requests
 - 📊 Detailed or concise summary formats
 - 🎨 Beautiful, theme-aware formatting
-- ⚡ API usage optimization
+- ⚡ API usage optimization with request throttling
 - 🏷️ Quality-based news filtering
 - 📂 Organized news archive with table of contents
 
 ## Prerequisites
 
-To use this plugin, you may choose between:
+To use this plugin, you may choose between two API providers:
 
+### Option 1: Google APIs (requires 3 keys)
 1. A Google Custom Search API key
 2. A Custom Search Engine ID
 3. A Google Gemini API key
 
-OR
-
-1. A Perplexity API key
+### Option 2: Perplexity API (requires 1 key)
+1. A Perplexity Sonar API key
 
 ## Installation
 
@@ -38,25 +38,28 @@ OR
 
 ### Essential Settings
 
-1. **API Keys**: 
-   1. Google:
-      - Enter your Google API Key
-      - Enter your Search Engine ID
-      - Enter your Gemini API Key
-   2. Perplexity:
-      - Perplexity API key
+1. **API Provider Selection**: 
+   - Choose between Google APIs or Sonar API
 
-2. **Topics**: 
+2. **API Keys**: 
+   - For Google:
+     - Enter your Google Search API Key (for fetching news)
+     - Enter your Search Engine ID
+     - Enter your Gemini API Key (for summarization)
+   - For Perplexity:
+     - Enter your Sonar API key (combines search and summarization)
+
+3. **Topics**: 
    - Add your topics of interest (e.g., "Technology", "World News")
    - Each topic will be searched and summarized separately
 
-3. **Schedule**: 
+4. **Schedule**: 
    - Set your preferred time for daily news generation (24-hour format)
    - Choose your archive folder location
 
 ### Advanced Settings
 
-- **Content Quality**:
+- **Content Quality** (for Google API):
   - Set news items per topic (3-15)
   - Configure maximum search results (10-50)
   - Enable/disable strict quality filtering
@@ -70,6 +73,7 @@ OR
   - Customize date range for searches
   - Set minimum content length
   - Use custom AI prompts for summarization
+  - Configure domain preferences for both API providers
 
 ## Usage
 
@@ -85,15 +89,11 @@ OR
 2. Search for "Generate news now"
 3. Click to generate news immediately
 
-### Reading Your News
+### Sidebar Button
 
-- News is organized by topics with a table of contents
-- Each topic includes:
-  - Key developments with concrete facts and statistics
-  - Source links in markdown format
-  - AI-generated analysis (in detailed mode)
-  - Notable quotes and data points
-  - Quality-filtered content from reliable sources
+For quick access, use the newspaper icon in the sidebar to:
+- Generate today's news if it doesn't exist yet
+- Open today's news if it already exists
 
 ## Example Output
 
@@ -118,61 +118,56 @@ OR
 - **[Ohio University Launches Artificial Intelligence Bachelor of Science Degree]**: Ohio University's Russ College of Engineering and Technology has launched a new Bachelor of Science degree program in Artificial Intelligence. [Source](https://www.ohio.edu/engineering/)
 
 ### Analysis & Context
-The *New York Times* article suggests that Apple is facing challenges on multiple fronts. The combination of disappointing AI product performance and the economic pressures from tariffs paints a concerning picture for the company's innovation efforts. The launch of an AI degree program at Ohio University reflects the growing importance of AI in academia and industry, indicating a broader trend of investment in AI education and research. The Alabama Public Radio segment and the Nature article, while relevant to the broader news landscape, did not contain specific, substantive details about AI developments.
-
----
-
-## World News
-
-### Key Developments
-- **[European Countries Pledge Billions in Military Support for Ukraine]**: European countries have pledged billions in military support for Ukraine. A US envoy met with Putin. [Source](https://apnews.com/world-news)
-- **[Israelis Mark Passover Amid Gaza Captive Crisis]**: Israelis are observing Passover while hoping for the release of captives held in Gaza. [Source](https://apnews.com/world-news)
-- **[UN Reports Israeli Military Actions Undermining Syrian Political Transition]**: On April 10, 2025, the United Nations reported that recent military actions by Israel are undermining Syria's political transition and the chances of a new security pact between the two countries. [Source](https://www.un.org/en/)
-- **[NASA Focuses on World Science and Inspiring Students]**: NASA is focusing on world science and inspiring students across the United States to pursue scientific fields. [Source](https://nasa.gov/news/recently-published/)
-- **[Rare Ancient DNA Discovery]**: Nature.com reports on the discovery of rare ancient DNA. [Source](https://www.nature.com/news)
-
-### Analysis & Context
-The news items highlight ongoing geopolitical tensions, particularly the situation in Ukraine and the Israeli-Syrian conflict. The significant military support pledged to Ukraine underscores the continued international focus on the conflict. The UN report regarding Israeli actions and the Syrian political transition suggests a complex and potentially destabilizing situation in the region. The Passover observance in Israel, coupled with the ongoing hostage situation in Gaza, underscores the humanitarian dimension of the Israeli-Palestinian conflict. The science news from Nature.com and NASA's focus on inspiring students indicate continued advancements and outreach efforts in the scientific community.
+The *New York Times* article suggests that Apple is facing challenges on multiple fronts. The combination of disappointing AI product performance and the economic pressures from tariffs paints a concerning picture for the company's innovation efforts. The launch of an AI degree program at Ohio University reflects the growing importance of AI in academia and industry, indicating a broader trend of investment in AI education and research.
 ```
 
 ## Tips for Best Results
 
-1. **Topic Selection**:
+1. **API Provider Selection**:
+   - Google APIs provide more control over news quality and filtering
+   - Sonar API offers simpler setup with just one API key
+   - Choose based on your preference for simplicity vs. control
+
+2. **Topic Selection**:
    - Use specific topics rather than broad categories
    - Topic-specific search terms are automatically added for better results
 
-2. **Quality Settings**:
+3. **Quality Settings** (for Google API):
    - Enable strict quality filtering for more reliable sources
    - Add trusted news sources to preferred domains
    - Add known low-quality sources to excluded domains
 
-3. **API Usage**:
+4. **API Usage Optimization**:
    - Adjust maximum search results based on your API quota
    - Set appropriate news items per topic for comprehensive coverage
+   - The plugin now includes request throttling to prevent API rate limits
 
 ## Troubleshooting
 
 ### Common Issues
 
 1. **No News Generated**:
-   - Check API keys
+   - Check API keys (the plugin will verify basic key formats)
    - Verify scheduled time format
    - Ensure topics are properly configured
+   - Check your internet connection
 
 2. **Poor Quality Content**:
    - Enable strict quality filtering
    - Add more specific topics
    - Review excluded domains list
+   - Try using Google APIs for more filtering options
 
-3. **API Limits**:
+3. **API Limits or Errors**:
    - Reduce maximum search results
    - Reduce news items per topic
-   - Adjust date range settings
-  
-4. **News Generated Failure**
-   - Check whether there is an existing news file
-   - Check internet connection
-   - Check API keys
+   - Check API key validity
+   - Verify your API quota has not been exceeded
+
+4. **Scheduled Generation Issues**:
+   - The plugin now handles system sleep/wake cycles better
+   - Check if news file already exists for today
+   - Manually trigger generation to test configuration
 
 ## Support
 
@@ -197,13 +192,15 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - Obsidian Community
-- Google Cloud Platform
+- Google Cloud Platform and Perplexity
 - Contributors and testers
 
 ## Changelog
 
 ### 1.4.0
 - Support Sonar by Perplexity to simplify the API key settings
+- Implemented API request throttling to prevent rate limits
+- Enhanced documentation in README
 
 ### 1.3.1
 - Rename settings to avoid confusion
@@ -222,7 +219,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Optimize console log and performance
 
 ### 1.1.1
-- Optimize news flitering
+- Optimize news filtering
 
 ### 1.1.0
 - Simplify configuration options
