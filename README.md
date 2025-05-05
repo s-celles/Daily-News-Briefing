@@ -4,7 +4,7 @@ Get AI-powered daily news summaries directly in your Obsidian vault. Stay inform
 
 ## Features
 
-- 🤖 AI-powered news summarization using Google's Gemini 2.0 Flash model
+- 🤖 AI-powered news summarization using Google's Gemini 2.0 Flash model or Perplexity's Sonar
 - 📅 Automated daily news collection
 - 🎯 Customizable topics and news sources
 - 🔍 Advanced multi-phase search strategy with quality scoring
@@ -16,11 +16,15 @@ Get AI-powered daily news summaries directly in your Obsidian vault. Stay inform
 
 ## Prerequisites
 
-To use this plugin, you'll need:
+To use this plugin, you may choose between:
 
 1. A Google Custom Search API key
 2. A Custom Search Engine ID
 3. A Google Gemini API key
+
+OR
+
+1. A Perplexity API key
 
 ## Installation
 
@@ -35,9 +39,12 @@ To use this plugin, you'll need:
 ### Essential Settings
 
 1. **API Keys**: 
-   - Enter your Google API Key
-   - Enter your Search Engine ID
-   - Enter your Gemini API Key
+   1. Google:
+      - Enter your Google API Key
+      - Enter your Search Engine ID
+      - Enter your Gemini API Key
+   2. Perplexity:
+      - Perplexity API key
 
 2. **Topics**: 
    - Add your topics of interest (e.g., "Technology", "World News")
@@ -194,6 +201,9 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Contributors and testers
 
 ## Changelog
+
+### 1.4.0
+- Support Sonar by Perplexity to simplify the API key settings
 
 ### 1.3.1
 - Rename settings to avoid confusion

@@ -2,10 +2,16 @@ import { App, Plugin, PluginSettingTab, Setting, Notice, TFile, requestUrl } fro
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 interface DailyNewsSettings {
-    // Essential API settings
-    googleApiKey: string;
-    searchEngineId: string;
+    // API provider selection
+    apiProvider: 'google' | 'sonar';
+
+    // Google API settings
+    googleSearchApiKey: string;
+    googleSearchEngineId: string;
     geminiApiKey: string;
+
+    // Perplexity API settings
+    perplexityApiKey: string;
     
     // Core functionality
     topics: string[];
@@ -32,10 +38,16 @@ interface DailyNewsSettings {
 }
 
 const DEFAULT_SETTINGS: DailyNewsSettings = {
-    // Essential API settings
-    googleApiKey: '',
-    searchEngineId: '',
+    // API provider selection
+    apiProvider: 'google', // Default to Google for backward compatibility
+
+    // Google API settings
+    googleSearchApiKey: '',
+    googleSearchEngineId: '',
     geminiApiKey: '',
+
+    // Perplexity API settings
+    perplexityApiKey: '',
     
     // Core functionality
     topics: ['Technology', 'World News'],
@@ -54,11 +66,11 @@ const DEFAULT_SETTINGS: DailyNewsSettings = {
     
     // Advanced settings
     dateRange: 'd2',
-    minContentLength: 80, // Reduced from 120 to be less strict
+    minContentLength: 80,
     useCustomPrompt: false,
     customPrompt: '',
-    strictQualityFiltering: false, // Changed default to false for less strictness
-    qualityThreshold: 3 // Default lower threshold for quality
+    strictQualityFiltering: false,
+    qualityThreshold: 3
 }
 
 // List of high-quality news sources
@@ -139,42 +151,80 @@ class DailyNewsSettingTab extends PluginSettingTab {
         const {containerEl} = this;
         containerEl.empty();
 
-        // API Configuration section
+        // API Provider Configuration section
+        containerEl.createEl('h2', {text: 'API Provider'});
+        containerEl.createEl('p', {text: 'Choose which API provider to use for fetching news.'});
+
+        new Setting(containerEl)
+            .setName('API Provider')
+            .setDesc('Select either Google APIs (requires 3 keys) or Sonar API (requires 1 key)')
+            .addDropdown(dropdown => dropdown
+                .addOption('google', 'Google (Search + Gemini)')
+                .addOption('sonar', 'Sonar by Perplexity')
+                .setValue(this.plugin.settings.apiProvider)
+                .onChange(async (value: 'google' | 'sonar') => {
+                    this.plugin.settings.apiProvider = value;
+                    await this.plugin.saveSettings();
+                    this.display(); // Refresh to show/hide appropriate fields
+                }));
+
+        // API Configuration section - show appropriate fields based on provider
         containerEl.createEl('h2', {text: 'API Configuration'});
         containerEl.createEl('p', {text: 'API keys are required for fetching and summarizing news.'});
 
-        new Setting(containerEl)
-            .setName('Google Search API key')
-            .setDesc('Your Google Custom Search API key')
-            .addText(text => text
-                .setPlaceholder('Enter API key')
-                .setValue(this.plugin.settings.googleApiKey)
-                .onChange(async (value) => {
-                    this.plugin.settings.googleApiKey = value;
-                    await this.plugin.saveSettings();
-                }));
+        if (this.plugin.settings.apiProvider === 'google') {
+            // Google API settings
+            new Setting(containerEl)
+                .setName('Google Search API key')
+                .setDesc('Your Google Custom Search API key')
+                .addText(text => text
+                    .setPlaceholder('Enter API key')
+                    .setValue(this.plugin.settings.googleSearchApiKey)
+                    .onChange(async (value) => {
+                        this.plugin.settings.googleSearchApiKey = value;
+                        await this.plugin.saveSettings();
+                    }));
 
-        new Setting(containerEl)
-            .setName('Google Search engine ID')
-            .setDesc('Your Google Custom Search Engine ID')
-            .addText(text => text
-                .setPlaceholder('Enter search engine ID')
-                .setValue(this.plugin.settings.searchEngineId)
-                .onChange(async (value) => {
-                    this.plugin.settings.searchEngineId = value;
-                    await this.plugin.saveSettings();
-                }));
+            new Setting(containerEl)
+                .setName('Google Search engine ID')
+                .setDesc('Your Google Custom Search Engine ID')
+                .addText(text => text
+                    .setPlaceholder('Enter search engine ID')
+                    .setValue(this.plugin.settings.googleSearchEngineId)
+                    .onChange(async (value) => {
+                        this.plugin.settings.googleSearchEngineId = value;
+                        await this.plugin.saveSettings();
+                    }));
 
-        new Setting(containerEl)
-            .setName('Gemini API key')
-            .setDesc('Your Google Gemini API key for news summarization')
-            .addText(text => text
-                .setPlaceholder('Enter Gemini API key')
-                .setValue(this.plugin.settings.geminiApiKey)
-                .onChange(async (value) => {
-                    this.plugin.settings.geminiApiKey = value;
-                    await this.plugin.saveSettings();
-                }));
+            new Setting(containerEl)
+                .setName('Gemini API key')
+                .setDesc('Your Google Gemini API key for news summarization')
+                .addText(text => text
+                    .setPlaceholder('Enter Gemini API key')
+                    .setValue(this.plugin.settings.geminiApiKey)
+                    .onChange(async (value) => {
+                        this.plugin.settings.geminiApiKey = value;
+                        await this.plugin.saveSettings();
+                    }));
+        } else {
+            // Sonar API settings
+            new Setting(containerEl)
+                .setName('Sonar API key')
+                .setDesc('Your Perplexity Sonar API key (combines search and summarization)')
+                .addText(text => text
+                    .setPlaceholder('Enter Sonar API key')
+                    .setValue(this.plugin.settings.perplexityApiKey)
+                    .onChange(async (value) => {
+                        this.plugin.settings.perplexityApiKey = value;
+                        await this.plugin.saveSettings();
+                    }));
+            
+            // Add message about Sonar API advantages
+            containerEl.createEl('div', {
+                text: 'Sonar API combines search and summarization in one step, providing a simpler setup with only one API key.',
+                cls: 'setting-item-description'
+            });
+        }
 
         // News Configuration section
         containerEl.createEl('h2', {text: 'News Configuration'});
@@ -284,6 +334,16 @@ class DailyNewsSettingTab extends PluginSettingTab {
                     this.display();
                 }));
 
+        // Advanced toggle
+        new Setting(containerEl)
+            .setName('Show advanced configuration')
+            .addToggle(toggle => toggle
+                .setValue(this.showAdvanced)
+                .onChange(value => {
+                    this.showAdvanced = value;
+                    this.display();
+                }));
+
         // Advanced Settings
         if (this.showAdvanced) {
             containerEl.createEl('h2', {text: 'Advanced Configuration'});
@@ -299,30 +359,57 @@ class DailyNewsSettingTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     }));
 
-            new Setting(containerEl)
-                .setName('Minimum content length')
-                .setDesc('Minimum length for news snippets to be considered')
-                .addText(text => text
-                    .setPlaceholder('80')
-                    .setValue(this.plugin.settings.minContentLength.toString())
-                    .onChange(async (value) => {
-                        const parsedValue = parseInt(value);
-                        this.plugin.settings.minContentLength = isNaN(parsedValue) ? 80 : parsedValue;
-                        await this.plugin.saveSettings();
-                    }));
-                    
-            new Setting(containerEl)
-                .setName('Quality threshold')
-                .setDesc('Minimum quality score for articles (1-10, lower = more results)')
-                .addSlider(slider => slider
-                    .setLimits(1, 8, 1)
-                    .setValue(this.plugin.settings.qualityThreshold)
-                    .setDynamicTooltip()
-                    .onChange(async (value) => {
-                        this.plugin.settings.qualityThreshold = value;
-                        await this.plugin.saveSettings();
-                    }));
-
+            // Additional advanced settings for preferred domains and API-specific settings
+            if (this.plugin.settings.apiProvider === 'google') {
+                // Show Google-specific advanced settings
+                new Setting(containerEl)
+                    .setName('Maximum search results')
+                    .setDesc('Total search results to fetch (higher values give more options but use more API quota)')
+                    .addSlider(slider => slider
+                        .setLimits(10, 50, 5)
+                        .setValue(this.plugin.settings.maxSearchResults)
+                        .setDynamicTooltip()
+                        .onChange(async (value) => {
+                            this.plugin.settings.maxSearchResults = value;
+                            await this.plugin.saveSettings();
+                        }));
+                        
+                new Setting(containerEl)
+                    .setName('Quality filtering')
+                    .setDesc('Enable stricter quality filters (may reduce number of results)')
+                    .addToggle(toggle => toggle
+                        .setValue(this.plugin.settings.strictQualityFiltering)
+                        .onChange(async (value) => {
+                            this.plugin.settings.strictQualityFiltering = value;
+                            await this.plugin.saveSettings();
+                        }));
+                
+                new Setting(containerEl)
+                    .setName('Minimum content length')
+                    .setDesc('Minimum length for news snippets to be considered')
+                    .addText(text => text
+                        .setPlaceholder('80')
+                        .setValue(this.plugin.settings.minContentLength.toString())
+                        .onChange(async (value) => {
+                            const parsedValue = parseInt(value);
+                            this.plugin.settings.minContentLength = isNaN(parsedValue) ? 80 : parsedValue;
+                            await this.plugin.saveSettings();
+                        }));
+                        
+                new Setting(containerEl)
+                    .setName('Quality threshold')
+                    .setDesc('Minimum quality score for articles (1-10, lower = more results)')
+                    .addSlider(slider => slider
+                        .setLimits(1, 8, 1)
+                        .setValue(this.plugin.settings.qualityThreshold)
+                        .setDynamicTooltip()
+                        .onChange(async (value) => {
+                            this.plugin.settings.qualityThreshold = value;
+                            await this.plugin.saveSettings();
+                        }));
+            }
+            
+            // Custom prompt setting - available for both providers
             new Setting(containerEl)
                 .setName('Use custom AI prompt')
                 .setDesc('Enable to use your own custom AI prompt for summarization')
@@ -335,9 +422,13 @@ class DailyNewsSettingTab extends PluginSettingTab {
                     }));
                     
             if (this.plugin.settings.useCustomPrompt) {
+                const customPromptDesc = this.plugin.settings.apiProvider === 'google' 
+                    ? 'Your custom prompt for the AI summarization (use {{NEWS_TEXT}} as placeholder for the news content)'
+                    : 'Your custom prompt for the Sonar API (use {{NEWS_TEXT}} as placeholder for the topic search instruction)';
+                
                 new Setting(containerEl)
                     .setName('Custom AI prompt')
-                    .setDesc('Your custom prompt for the AI summarization (use {{NEWS_TEXT}} as placeholder for the news content)')
+                    .setDesc(customPromptDesc)
                     .addTextArea(text => text
                         .setPlaceholder('You are a professional news analyst...\n\n{{NEWS_TEXT}}\n\nPlease summarize...')
                         .setValue(this.plugin.settings.customPrompt)
@@ -347,6 +438,7 @@ class DailyNewsSettingTab extends PluginSettingTab {
                         }));
             }
 
+            // Domain settings - available for both providers
             new Setting(containerEl)
                 .setName('Preferred domains')
                 .setDesc('Comma-separated list of preferred news sources')
@@ -569,8 +661,8 @@ export default class DailyNewsPlugin extends Plugin {
             const startIndex = (i * 10) + 1; // Google API starts at 1
             
             const params = new URLSearchParams({
-                key: this.settings.googleApiKey,
-                cx: this.settings.searchEngineId,
+                key: this.settings.googleSearchApiKey,
+                cx: this.settings.googleSearchEngineId,
                 q: query,
                 num: '10',
                 dateRestrict: dateRestrict,
@@ -886,7 +978,143 @@ Format your summary as bullet points with concrete facts:
         }
     }
 
+    async fetchAndSummarizeWithSonar(topic: string): Promise<string> {
+        try {
+            // Calculate date range based on settings
+            let dateNumber = 2; // Default to 2 days
+            if (this.settings.dateRange) {
+                const match = this.settings.dateRange.match(/(\d+)/);
+                if (match && match[1]) {
+                    dateNumber = parseInt(match[1]);
+                }
+            }
+            
+            // Prepare date filters for recency
+            const today = new Date();
+            const pastDate = new Date();
+            pastDate.setDate(today.getDate() - dateNumber);
+            
+            const afterDate = `${pastDate.getMonth()+1}/${pastDate.getDate()}/${pastDate.getFullYear()}`;
+            const beforeDate = `${today.getMonth()+1}/${today.getDate()}/${today.getFullYear()}`;
+            
+            // Prepare domain filters
+            const domainFilters: string[] = [];
+            
+            // Add preferred domains
+            this.settings.preferredDomains.forEach(domain => {
+                domainFilters.push(domain);
+            });
+            
+            // Add excluded domains with minus prefix
+            this.settings.excludedDomains.forEach(domain => {
+                domainFilters.push(`-${domain}`);
+            });
+            
+            // Determine recency filter based on dateRange setting
+            let recencyFilter = 'day';
+            if (this.settings.dateRange.startsWith('w')) {
+                recencyFilter = 'week';
+            } else if (this.settings.dateRange.startsWith('m')) {
+                recencyFilter = 'month';
+            }
+            
+            // Build system message based on output format
+            let systemMessage = '';
+            if (this.settings.useCustomPrompt && this.settings.customPrompt) {
+                // Use custom prompt if enabled
+                systemMessage = this.settings.customPrompt.replace('{{NEWS_TEXT}}', 
+                    `Find and summarize the latest significant news about "${topic}".`);
+            } else {
+                // Use default prompt based on output format
+                if (this.settings.outputFormat === 'detailed') {
+                    systemMessage = `You are a professional news analyst. Provide a detailed analysis of recent news on ${topic} with the following sections:
+                    
+    ### Key Developments
+    - **[Clear headline with key detail]**: Concrete facts with specific details. [Source](URL)
+    - **[Clear headline with key detail]**: Concrete facts with specific details. [Source](URL)
+    
+    ### Analysis & Context
+    [Provide context, implications, or background for the most significant developments]
+    
+    Focus on concrete developments, facts, and data. For each news item include the SOURCE in markdown format: [Source](URL). Use specific dates rather than relative time references.`;
+                } else {
+                    systemMessage = `Provide a concise bullet-point summary of recent news on ${topic}:
+    
+    Format your summary as bullet points with concrete facts:
+    
+    - **[Clear headline with key detail]**: Concrete facts with specific details. [Source](URL)
+    - **[Clear headline with key detail]**: Concrete facts with specific details. [Source](URL)
+    
+    Focus on concrete developments, facts, and data. For each news item include the SOURCE in markdown format: [Source](URL). Use specific dates rather than relative time references.`;
+                }
+            }
+            
+            // Make API request to Sonar
+            const options = {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.settings.perplexityApiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: "sonar",
+                    messages: [
+                        {
+                            role: "system",
+                            content: systemMessage
+                        },
+                        {
+                            role: "user",
+                            content: `Find and summarize the latest significant news about "${topic}". Include sources for each news item in markdown format.`
+                        }
+                    ],
+                    search_domain_filter: domainFilters.length > 0 ? domainFilters : undefined,
+                    search_after_date_filter: afterDate,
+                    search_before_date_filter: beforeDate,
+                    search_recency_filter: recencyFilter
+                })
+            };
+            
+            const response = await requestUrl({
+                url: 'https://api.perplexity.ai/chat/completions',
+                ...options
+            });
+            
+            if (response.status >= 200 && response.status < 300) {
+                const data = JSON.parse(response.text);
+                return data.choices[0].message.content;
+            } else {
+                throw new Error(`Sonar API returned status ${response.status}: ${response.text}`);
+            }
+        } catch (error) {
+            console.error('Sonar API error:', error);
+            return `Error fetching news about ${topic} from Sonar API. Please check your API key and settings.\n\nError details: ${error.message}`;
+        }
+    }
+
+    private validateApiConfig(): boolean {
+        if (this.settings.apiProvider === 'google') {
+            // Check Google API settings
+            if (!this.settings.googleSearchApiKey || !this.settings.googleSearchEngineId || !this.settings.geminiApiKey) {
+                new Notice('Missing Google API configuration. Please check settings.', 5000);
+                return false;
+            }
+        } else {
+            // Check Sonar API settings
+            if (!this.settings.perplexityApiKey) {
+                new Notice('Missing Sonar API key. Please add your Perplexity API key in settings.', 5000);
+                return false;
+            }
+        }
+        return true;
+    }
+
     async generateDailyNews() {
+        // Validate API configuration first
+        if (!this.validateApiConfig()) {
+            return null;
+        }
+
         const date = new Date().toISOString().split('T')[0];
         
         try {
@@ -919,14 +1147,20 @@ Format your summary as bullet points with concrete facts:
                     content += `## ${topic}\n\n`;
                     
                     new Notice(`Fetching news for ${topic}...`);
-                    const newsItems = await this.fetchNews(topic);
-                    
-                    if (newsItems.length) {
-                        new Notice(`Summarizing ${newsItems.length} news items for ${topic}...`);
-                        const summary = await this.generateSummary(newsItems, topic);
+
+                    if (this.settings.apiProvider === 'google') {
+                        const newsItems = await this.fetchNews(topic);
+                        
+                        if (newsItems.length) {
+                            new Notice(`Summarizing ${newsItems.length} news items for ${topic}...`);
+                            const summary = await this.generateSummary(newsItems, topic);
+                            content += summary + '\n';
+                        } else {
+                            content += `No recent news found for ${topic}.\n\n`;
+                        }
+                    } else if (this.settings.apiProvider === 'sonar') {
+                        const summary = await this.fetchAndSummarizeWithSonar(topic);
                         content += summary + '\n';
-                    } else {
-                        content += `No recent news found for ${topic}.\n\n`;
                     }
 
                 } catch (topicError) {
