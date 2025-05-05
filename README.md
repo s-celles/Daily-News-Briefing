@@ -26,6 +26,8 @@ To use this plugin, you may choose between two API providers:
 ### Option 2: Perplexity API (requires 1 key)
 1. A Perplexity Sonar API key
 
+> **Note**: Perplexity is simple and easy to use, but Google is free and more customizable.
+
 ## Installation
 
 1. Open Obsidian Settings
