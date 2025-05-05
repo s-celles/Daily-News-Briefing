@@ -334,16 +334,6 @@ class DailyNewsSettingTab extends PluginSettingTab {
                     this.display();
                 }));
 
-        // Advanced toggle
-        new Setting(containerEl)
-            .setName('Show advanced configuration')
-            .addToggle(toggle => toggle
-                .setValue(this.showAdvanced)
-                .onChange(value => {
-                    this.showAdvanced = value;
-                    this.display();
-                }));
-
         // Advanced Settings
         if (this.showAdvanced) {
             containerEl.createEl('h2', {text: 'Advanced Configuration'});
