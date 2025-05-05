@@ -262,42 +262,44 @@ class DailyNewsSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        // Content Quality section
-        containerEl.createEl('h2', {text: 'Content Quality'});
-        
-        new Setting(containerEl)
-            .setName('News items per topic')
-            .setDesc('Maximum number of news items to include per topic')
-            .addSlider(slider => slider
-                .setLimits(3, 15, 1)
-                .setValue(this.plugin.settings.resultsPerTopic)
-                .setDynamicTooltip()
-                .onChange(async (value) => {
-                    this.plugin.settings.resultsPerTopic = value;
-                    await this.plugin.saveSettings();
-                }));
-                
-        new Setting(containerEl)
-            .setName('Maximum search results')
-            .setDesc('Total search results to fetch (higher values give more options but use more API quota)')
-            .addSlider(slider => slider
-                .setLimits(10, 50, 5)
-                .setValue(this.plugin.settings.maxSearchResults)
-                .setDynamicTooltip()
-                .onChange(async (value) => {
-                    this.plugin.settings.maxSearchResults = value;
-                    await this.plugin.saveSettings();
-                }));
-                
-        new Setting(containerEl)
-            .setName('Quality filtering')
-            .setDesc('Enable stricter quality filters (may reduce number of results)')
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.strictQualityFiltering)
-                .onChange(async (value) => {
-                    this.plugin.settings.strictQualityFiltering = value;
-                    await this.plugin.saveSettings();
-                }));
+        if (this.plugin.settings.apiProvider === 'google') {
+            // Content Quality section
+            containerEl.createEl('h2', {text: 'Content Quality'});
+            
+            new Setting(containerEl)
+                .setName('News items per topic')
+                .setDesc('Maximum number of news items to include per topic')
+                .addSlider(slider => slider
+                    .setLimits(3, 15, 1)
+                    .setValue(this.plugin.settings.resultsPerTopic)
+                    .setDynamicTooltip()
+                    .onChange(async (value) => {
+                        this.plugin.settings.resultsPerTopic = value;
+                        await this.plugin.saveSettings();
+                    }));
+                    
+            new Setting(containerEl)
+                .setName('Maximum search results')
+                .setDesc('Total search results to fetch (higher values give more options but use more API quota)')
+                .addSlider(slider => slider
+                    .setLimits(10, 50, 5)
+                    .setValue(this.plugin.settings.maxSearchResults)
+                    .setDynamicTooltip()
+                    .onChange(async (value) => {
+                        this.plugin.settings.maxSearchResults = value;
+                        await this.plugin.saveSettings();
+                    }));
+                    
+            new Setting(containerEl)
+                .setName('Quality filtering')
+                .setDesc('Enable stricter quality filters (may reduce number of results)')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.strictQualityFiltering)
+                    .onChange(async (value) => {
+                        this.plugin.settings.strictQualityFiltering = value;
+                        await this.plugin.saveSettings();
+                    }));
+        }
 
         // Output Settings section
         containerEl.createEl('h2', {text: 'Output Configuration'});
