@@ -202,7 +202,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ### 1.4.1 
 - Enhance Sonar Performance
    - Improve Sonar prompt
-   - Simplif Sonar settings
+   - Simplify Sonar settings
 
 ### 1.4.0
 - Support Sonar by Perplexity to simplify the API key settings
