@@ -304,17 +304,19 @@ class DailyNewsSettingTab extends PluginSettingTab {
         // Output Settings section
         containerEl.createEl('h2', {text: 'Output Configuration'});
         
-        new Setting(containerEl)
-            .setName('Output style')
-            .setDesc('Choose level of detail for news summaries')
-            .addDropdown(dropdown => dropdown
-                .addOption('detailed', 'Detailed - with analysis')
-                .addOption('concise', 'Concise - just facts')
-                .setValue(this.plugin.settings.outputFormat)
-                .onChange(async (value: 'detailed' | 'concise') => {
-                    this.plugin.settings.outputFormat = value;
-                    await this.plugin.saveSettings();
-                }));
+        if (this.plugin.settings.apiProvider === 'google') {
+            new Setting(containerEl)
+                .setName('Output style')
+                .setDesc('Choose level of detail for news summaries')
+                .addDropdown(dropdown => dropdown
+                    .addOption('detailed', 'Detailed - with analysis')
+                    .addOption('concise', 'Concise - just facts')
+                    .setValue(this.plugin.settings.outputFormat)
+                    .onChange(async (value: 'detailed' | 'concise') => {
+                        this.plugin.settings.outputFormat = value;
+                        await this.plugin.saveSettings();
+                    }));
+        }
                 
         new Setting(containerEl)
             .setName('Enable notifications')
@@ -339,21 +341,21 @@ class DailyNewsSettingTab extends PluginSettingTab {
         // Advanced Settings
         if (this.showAdvanced) {
             containerEl.createEl('h2', {text: 'Advanced Configuration'});
-            
-            new Setting(containerEl)
-                .setName('Search date range')
-                .setDesc('How far back to search (d1 = 1 day, d2 = 2 days, w1 = 1 week)')
-                .addText(text => text
-                    .setPlaceholder('d2')
-                    .setValue(this.plugin.settings.dateRange)
-                    .onChange(async (value) => {
-                        this.plugin.settings.dateRange = value;
-                        await this.plugin.saveSettings();
-                    }));
 
             // Additional advanced settings for preferred domains and API-specific settings
             if (this.plugin.settings.apiProvider === 'google') {
                 // Show Google-specific advanced settings
+                new Setting(containerEl)
+                    .setName('Search date range')
+                    .setDesc('How far back to search (d1 = 1 day, d2 = 2 days, w1 = 1 week)')
+                    .addText(text => text
+                        .setPlaceholder('d2')
+                        .setValue(this.plugin.settings.dateRange)
+                        .onChange(async (value) => {
+                            this.plugin.settings.dateRange = value;
+                            await this.plugin.saveSettings();
+                        }));
+
                 new Setting(containerEl)
                     .setName('Maximum search results')
                     .setDesc('Total search results to fetch (higher values give more options but use more API quota)')
@@ -429,29 +431,31 @@ class DailyNewsSettingTab extends PluginSettingTab {
                             await this.plugin.saveSettings();
                         }));
             }
+            
+            if (this.plugin.settings.apiProvider === 'google') {
+                // Domain settings
+                new Setting(containerEl)
+                    .setName('Preferred domains')
+                    .setDesc('Comma-separated list of preferred news sources')
+                    .addTextArea(text => text
+                        .setPlaceholder('nytimes.com, bbc.com, reuters.com')
+                        .setValue(this.plugin.settings.preferredDomains.join(', '))
+                        .onChange(async (value) => {
+                            this.plugin.settings.preferredDomains = value.split(',').map(d => d.trim());
+                            await this.plugin.saveSettings();
+                        }));
 
-            // Domain settings - available for both providers
-            new Setting(containerEl)
-                .setName('Preferred domains')
-                .setDesc('Comma-separated list of preferred news sources')
-                .addTextArea(text => text
-                    .setPlaceholder('nytimes.com, bbc.com, reuters.com')
-                    .setValue(this.plugin.settings.preferredDomains.join(', '))
-                    .onChange(async (value) => {
-                        this.plugin.settings.preferredDomains = value.split(',').map(d => d.trim());
-                        await this.plugin.saveSettings();
-                    }));
-
-            new Setting(containerEl)
-                .setName('Excluded domains')
-                .setDesc('Comma-separated list of domains to exclude')
-                .addTextArea(text => text
-                    .setPlaceholder('pinterest.com, facebook.com')
-                    .setValue(this.plugin.settings.excludedDomains.join(', '))
-                    .onChange(async (value) => {
-                        this.plugin.settings.excludedDomains = value.split(',').map(d => d.trim());
-                        await this.plugin.saveSettings();
-                    }));
+                new Setting(containerEl)
+                    .setName('Excluded domains')
+                    .setDesc('Comma-separated list of domains to exclude')
+                    .addTextArea(text => text
+                        .setPlaceholder('pinterest.com, facebook.com')
+                        .setValue(this.plugin.settings.excludedDomains.join(', '))
+                        .onChange(async (value) => {
+                            this.plugin.settings.excludedDomains = value.split(',').map(d => d.trim());
+                            await this.plugin.saveSettings();
+                        }));
+            }
                     
             // Manual trigger button
             new Setting(containerEl)
@@ -920,21 +924,36 @@ export default class DailyNewsPlugin extends Plugin {
 
     private getAIPrompt(newsText: string, topic: string, format: 'detailed' | 'concise'): string {
         // If user has custom prompt enabled and provided one, use it
-        if (this.settings.useCustomPrompt && this.settings.customPrompt) {
+        if (this.settings.useCustomPrompt && this.settings.customPrompt && newsText) {
             return this.settings.customPrompt.replace('{{NEWS_TEXT}}', newsText);
         }
         
-        // Otherwise use simplified prompt
-        const basePrompt = `Analyze these news articles about ${topic} and provide a substantive summary:
+        // If no custom prompt, use default based on provider
+        let basePrompt = ``;
+        if (this.settings.apiProvider === 'google') {
+            basePrompt = `Analyze these news articles about ${topic} and provide a substantive summary:
 
-${newsText}
+                ${newsText}
 
-KEY REQUIREMENTS:
-1. Focus on concrete developments, facts, and data
-2. For each news item include the SOURCE in markdown format: [Source](URL)
-3. Use specific dates rather than relative time references
-4. Prioritize news with specific details (numbers, names, quotes)
-5. If content lacks substance, state "Limited substantive news found on ${topic}"`;
+                KEY REQUIREMENTS:
+                1. Focus on concrete developments, facts, and data
+                2. For each news item include the SOURCE in markdown format: [Source](URL)
+                3. Use specific dates rather than relative time references
+                4. Prioritize news with specific details (numbers, names, quotes)
+                5. If content lacks substance, state "Limited substantive news found on ${topic}"`;
+        } else {
+            // For Sonar API, use a different prompt structure
+            basePrompt = `You are a helpful AI assistant. Please answer in the required format.
+
+                KEY REQUIREMENTS:
+                1. Focus on concrete developments, facts, and data
+                2. For each news item include the SOURCE in markdown format: [Source](URL)
+                3. Use specific dates rather than relative time references
+                4. Prioritize news with specific details (numbers, names, quotes)
+                5. If content lacks substance, state "Limited substantive news found on ${topic}"`;
+
+            return basePrompt;
+        }
 
         // Add format-specific instructions
         if (format === 'detailed') {
@@ -972,74 +991,25 @@ Format your summary as bullet points with concrete facts:
 
     async fetchAndSummarizeWithSonar(topic: string): Promise<string> {
         try {
-            // Calculate date range based on settings
-            let dateNumber = 2; // Default to 2 days
-            if (this.settings.dateRange) {
-                const match = this.settings.dateRange.match(/(\d+)/);
-                if (match && match[1]) {
-                    dateNumber = parseInt(match[1]);
-                }
-            }
-            
-            // Prepare date filters for recency
-            const today = new Date();
-            const pastDate = new Date();
-            pastDate.setDate(today.getDate() - dateNumber);
-            
-            const afterDate = `${pastDate.getMonth()+1}/${pastDate.getDate()}/${pastDate.getFullYear()}`;
-            const beforeDate = `${today.getMonth()+1}/${today.getDate()}/${today.getFullYear()}`;
-            
-            // Prepare domain filters
-            const domainFilters: string[] = [];
-            
-            // Add preferred domains
-            this.settings.preferredDomains.forEach(domain => {
-                domainFilters.push(domain);
-            });
-            
-            // Add excluded domains with minus prefix
-            this.settings.excludedDomains.forEach(domain => {
-                domainFilters.push(`-${domain}`);
-            });
-            
-            // Determine recency filter based on dateRange setting
-            let recencyFilter = 'day';
-            if (this.settings.dateRange.startsWith('w')) {
-                recencyFilter = 'week';
-            } else if (this.settings.dateRange.startsWith('m')) {
-                recencyFilter = 'month';
-            }
-            
             // Build system message based on output format
-            let systemMessage = '';
-            if (this.settings.useCustomPrompt && this.settings.customPrompt) {
-                // Use custom prompt if enabled
-                systemMessage = this.settings.customPrompt.replace('{{NEWS_TEXT}}', 
-                    `Find and summarize the latest significant news about "${topic}".`);
-            } else {
-                // Use default prompt based on output format
-                if (this.settings.outputFormat === 'detailed') {
-                    systemMessage = `You are a professional news analyst. Provide a detailed analysis of recent news on ${topic} with the following sections:
-                    
-    ### Key Developments
-    - **[Clear headline with key detail]**: Concrete facts with specific details. [Source](URL)
-    - **[Clear headline with key detail]**: Concrete facts with specific details. [Source](URL)
-    
-    ### Analysis & Context
-    [Provide context, implications, or background for the most significant developments]
-    
-    Focus on concrete developments, facts, and data. For each news item include the SOURCE in markdown format: [Source](URL). Use specific dates rather than relative time references.`;
-                } else {
-                    systemMessage = `Provide a concise bullet-point summary of recent news on ${topic}:
-    
-    Format your summary as bullet points with concrete facts:
-    
-    - **[Clear headline with key detail]**: Concrete facts with specific details. [Source](URL)
-    - **[Clear headline with key detail]**: Concrete facts with specific details. [Source](URL)
-    
-    Focus on concrete developments, facts, and data. For each news item include the SOURCE in markdown format: [Source](URL). Use specific dates rather than relative time references.`;
-                }
-            }
+            let systemMessage = this.getAIPrompt('', topic, this.settings.outputFormat);
+            
+            // Prepare request body
+            const requestBody = {
+                model: "sonar",
+                messages: [
+                    {
+                        role: "system",
+                        content: systemMessage
+                    },
+                    {
+                        role: "user",
+                        content: `What are the latest significant news about "${topic}"?`
+                    }
+                ],
+            };
+            
+            // console.log("Sonar API request:", JSON.stringify(requestBody, null, 2));
             
             // Make API request to Sonar
             const options = {
@@ -1048,23 +1018,7 @@ Format your summary as bullet points with concrete facts:
                     'Authorization': `Bearer ${this.settings.perplexityApiKey}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    model: "sonar",
-                    messages: [
-                        {
-                            role: "system",
-                            content: systemMessage
-                        },
-                        {
-                            role: "user",
-                            content: `Find and summarize the latest significant news about "${topic}". Include sources for each news item in markdown format.`
-                        }
-                    ],
-                    search_domain_filter: domainFilters.length > 0 ? domainFilters : undefined,
-                    search_after_date_filter: afterDate,
-                    search_before_date_filter: beforeDate,
-                    search_recency_filter: recencyFilter
-                })
+                body: JSON.stringify(requestBody)
             };
             
             const response = await requestUrl({
@@ -1076,11 +1030,12 @@ Format your summary as bullet points with concrete facts:
                 const data = JSON.parse(response.text);
                 return data.choices[0].message.content;
             } else {
+                // console.error(`Sonar API returned status ${response.status}: ${response.text}`);
                 throw new Error(`Sonar API returned status ${response.status}: ${response.text}`);
             }
         } catch (error) {
             console.error('Sonar API error:', error);
-            return `Error fetching news about ${topic} from Sonar API. Please check your API key and settings.\n\nError details: ${error.message}`;
+            return `Error fetching news about ${topic} from Sonar API. Please check your API key and settings.\n\nError details: ${error.message}\n\nCheck the developer console for more information.`;
         }
     }
 
@@ -1176,7 +1131,7 @@ Format your summary as bullet points with concrete facts:
                 new Notice('Daily news generated successfully', 3000);
             }
             
-            console.log(`Created news file at: ${fileName}`);
+            // console.log(`Created news file at: ${fileName}`);
             return fileName;
             
         } catch (error) {

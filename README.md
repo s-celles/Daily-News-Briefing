@@ -197,6 +197,11 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Changelog
 
+### 1.4.1 
+- Enhance Sonar Performance
+   - Improve Sonar prompt
+   - Simplif Sonar settings
+
 ### 1.4.0
 - Support Sonar by Perplexity to simplify the API key settings
 - Implemented API request throttling to prevent rate limits
