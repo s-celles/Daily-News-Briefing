@@ -35,6 +35,7 @@ interface DailyNewsSettings {
     customPrompt: string;
     strictQualityFiltering: boolean;
     qualityThreshold: number; // New setting for fine-tuning filtering
+    useAIForQueries: boolean; // New setting: whether to use AI to generate search queries
 }
 
 const DEFAULT_SETTINGS: DailyNewsSettings = {
@@ -65,12 +66,13 @@ const DEFAULT_SETTINGS: DailyNewsSettings = {
     enableNotifications: true,
     
     // Advanced settings
-    dateRange: 'd2',
-    minContentLength: 80,
+    dateRange: 'd3', // Changed from d2 to d3 for broader date range
+    minContentLength: 60, // Reduced from 80 to 60
     useCustomPrompt: false,
     customPrompt: '',
     strictQualityFiltering: false,
-    qualityThreshold: 3
+    qualityThreshold: 2, // Reduced from 3 to 2
+    useAIForQueries: true // Enable AI query generation by default
 }
 
 // List of high-quality news sources
@@ -342,9 +344,19 @@ class DailyNewsSettingTab extends PluginSettingTab {
         if (this.showAdvanced) {
             containerEl.createEl('h2', {text: 'Advanced Configuration'});
 
+            // Add AI Query Generation setting in advanced section
+            new Setting(containerEl)
+                .setName('Use AI for search queries')
+                .setDesc('Use AI to generate optimized search queries (uses Gemini API)')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.useAIForQueries)
+                    .onChange(async (value) => {
+                        this.plugin.settings.useAIForQueries = value;
+                        await this.plugin.saveSettings();
+                    }));
+
             // Additional advanced settings for preferred domains and API-specific settings
             if (this.plugin.settings.apiProvider === 'google') {
-                // Show Google-specific advanced settings
                 new Setting(containerEl)
                     .setName('Search date range')
                     .setDesc('How far back to search (d1 = 1 day, d2 = 2 days, w1 = 1 week)')
@@ -511,39 +523,54 @@ export default class DailyNewsPlugin extends Plugin {
 
     async fetchNews(topic: string): Promise<NewsItem[]> {
         const startTime = Date.now();
-        // console.log(`Starting news fetch for ${topic}`);
         
         // Get appropriate date range parameter
         const dateRangeParam = this.settings.dateRange.match(/^[dw]\d+$/) ? 
-            this.settings.dateRange : 'd2';
+            this.settings.dateRange : 'd3'; // Default to 3 days instead of 2
             
         // Simplified search strategy - fetch in a single batch with multiple query variations
         const allNews: NewsItem[] = [];
         const searchResults: { [key: string]: NewsItem[] } = {};
         
         // Define search queries with descriptive names
-        const queries = {
+        let queries: {[key: string]: string} = {};
+        
+        // Use AI to generate the primary query if enabled
+        if (this.settings.useAIForQueries && this.settings.geminiApiKey) {
+            try {
+                const aiQuery = await this.generateAISearchQuery(topic);
+                if (aiQuery) {
+                    queries.aiGenerated = aiQuery;
+                    console.log(`AI generated query for ${topic}: ${aiQuery}`);
+                }
+            } catch (error) {
+                console.error("Error generating AI query:", error);
+            }
+        }
+        
+        // Always include more query variations to increase chance of results
+        queries = {
+            ...queries,
             standard: this.buildOptimizedQuery(topic),
             specific: this.createSpecificQuery(topic),
-            broad: `${topic} news recent important developments`,
-            general: `${topic} latest significant news`
+            broad: this.createBroadQuery(topic),
+            recent: this.createRecentQuery(topic),
+            simple: `${topic} news`  // Add a very simple query as a fallback
         };
         
         // Maximum results per query to avoid excessive API usage
-        const maxResultsPerQuery = Math.min(20, this.settings.maxSearchResults / 2);
+        const maxResultsPerQuery = Math.min(20, this.settings.maxSearchResults / Object.keys(queries).length);
         
         // Fetch results for each query type in parallel
         await Promise.all(Object.entries(queries).map(async ([queryType, queryString]) => {
             try {
-                // console.log(`Fetching ${queryType} news for ${topic} with query: ${queryString}`);
                 const results = await this.fetchNewsFromGoogle(
                     queryString, 
                     dateRangeParam, 
-                    queryType === 'standard', // Prioritize quality for standard query
+                    queryType === 'standard' || queryType === 'aiGenerated', // Prioritize quality for AI and standard queries
                     Math.ceil(maxResultsPerQuery)
                 );
                 searchResults[queryType] = results;
-                // console.log(`Found ${results.length} results for ${queryType} query`);
             } catch (error) {
                 console.error(`Error fetching ${queryType} news:`, error);
                 searchResults[queryType] = [];
@@ -559,33 +586,28 @@ export default class DailyNewsPlugin extends Plugin {
             }
         }
         
-        // console.log(`Total collected news items: ${allNews.length}`);
-        
-        // Try adaptive filtering with gradually decreasing strictness
+        // Use adaptive filtering with gradually decreasing strictness
         let filteredNews: NewsItem[] = [];
         let attemptCount = 0;
-        const maxAttempts = 4;
+        const maxAttempts = 5; // Increased from 4 to 5
         let qualityThreshold = this.settings.strictQualityFiltering ? 
-                              this.settings.qualityThreshold + 1 : 
-                              this.settings.qualityThreshold;
-        let minContentLength = this.settings.minContentLength;
+                              this.settings.qualityThreshold : 
+                              Math.max(1, this.settings.qualityThreshold - 1); // Start with lower threshold
+        let minContentLength = Math.max(40, this.settings.minContentLength - 20); // Start with lower content length
         
-        while (filteredNews.length < 3 && attemptCount < maxAttempts) {
-            // console.log(`Filtering attempt ${attemptCount+1} with threshold ${qualityThreshold} and min length ${minContentLength}`);
-            
+        while (filteredNews.length < Math.min(5, this.settings.resultsPerTopic) && attemptCount < maxAttempts) {
             filteredNews = this.applyQualityFilters(allNews, qualityThreshold, minContentLength);
             
             // If we don't have enough results, try more lenient filtering
-            if (filteredNews.length < 3) {
+            if (filteredNews.length < Math.min(5, this.settings.resultsPerTopic)) {
                 qualityThreshold = Math.max(1, qualityThreshold - 1);
-                minContentLength = Math.max(30, minContentLength - 20);
+                minContentLength = Math.max(20, minContentLength - 10);
                 attemptCount++;
             }
         }
         
-        // Last resort: if we still have no results, just take the highest scored items
-        if (filteredNews.length === 0 && allNews.length > 0) {
-            // console.log("No results after filtering attempts, using top-scored items as fallback");
+        // Last resort: if we still have too few results, just take all items sorted by score
+        if (filteredNews.length < Math.min(3, this.settings.resultsPerTopic) && allNews.length > 0) {
             allNews.sort((a, b) => (b.qualityScore || 0) - (a.qualityScore || 0));
             filteredNews = allNews.slice(0, this.settings.resultsPerTopic);
         }
@@ -597,48 +619,95 @@ export default class DailyNewsPlugin extends Plugin {
         const finalResults = filteredNews.slice(0, this.settings.resultsPerTopic);
         
         const elapsedTime = (Date.now() - startTime) / 1000;
-        // console.log(`Fetch completed for ${topic}: ${finalResults.length} items in ${elapsedTime.toFixed(1)}s`);
         
         return finalResults;
     }
     
-    // Simplified query builder with fewer special cases
+    // Update AI query generator to create broader queries
+    async generateAISearchQuery(topic: string): Promise<string | null> {
+        try {
+            if (!this.settings.geminiApiKey) {
+                return null;
+            }
+            
+            const genAI = new GoogleGenerativeAI(this.settings.geminiApiKey);
+            const model = genAI.getGenerativeModel({
+                model: "gemini-2.5-flash",
+                generationConfig: {
+                    temperature: 0.3, // Slightly increased temperature for more variety
+                    topK: 40,
+                    maxOutputTokens: 100
+                }
+            });
+            
+            // Modified prompt to encourage broader, more inclusive queries
+            const prompt = `You are a search optimization expert. Create a Google search query for the topic "${topic}" that will find recent news articles.
+The generated query should:
+1. Be broad enough to catch a variety of news on this topic
+2. Focus primarily on recent news articles
+3. Include relevant synonyms and related terms
+4. Avoid overuse of restrictive operators
+5. Be no more than 150 characters
+
+Only return the search query string itself, without any explanations or additional text.`;
+
+            const result = await model.generateContent(prompt);
+            const query = result.response.text().trim();
+            
+            // Verify that the query is a short and meaningful string
+            if (query && query.length > 0 && query.length < 200) {
+                return query;
+            }
+            return null;
+        } catch (error) {
+            console.error("Error generating AI search query:", error);
+            return null;
+        }
+    }
+
+    // Simplified query builder with broader terms to get more results
     private buildOptimizedQuery(topic: string): string {
         // Base query with the topic
-        let query = `${topic} news`;
+        let query = `${topic}`;
         
-        // Add topic-specific terms - simplified approach
+        // Add broader terms for all topics to increase result count
+        query += ' news OR updates OR recent OR latest';
+        
+        // Add topic-specific terms - using more general terms
         const lowercaseTopic = topic.toLowerCase();
         
         if (lowercaseTopic.includes('tech')) {
-            query += ' "latest developments" OR innovation OR launch OR release';
+            query += ' technology OR innovation OR digital';
         } else if (lowercaseTopic.includes('world') || lowercaseTopic.includes('global')) {
-            query += ' international OR diplomatic OR policy OR relations';
+            query += ' international OR global';
         } else if (lowercaseTopic.includes('business') || lowercaseTopic.includes('finance')) {
-            query += ' earnings OR markets OR economy OR financial';
+            query += ' market OR economic OR industry';
         } else if (lowercaseTopic.includes('science')) {
-            query += ' research OR discovery OR study OR breakthrough';
+            query += ' research OR discovery';
         } else if (lowercaseTopic.includes('health')) {
-            query += ' medical OR treatment OR research OR study';
-        } else {
-            // Generic improvements for other topics
-            query += ' recent OR latest OR update OR significant';
+            query += ' medical OR healthcare';
         }
         
-        // Add date context but keep it simpler
-        query += ' "this week" OR recent OR latest';
-        
-        // Add negative terms to filter out obvious low-quality content
-        query += ' -subscription -outdated';
+        // Minimal negative terms to avoid filtering too much
+        query += ' -spam';
         
         return query;
     }
-    
-    // Create a more specific query targeting real news articles
+
+    // Create a more generic query to capture more results
     private createSpecificQuery(topic: string): string {
-        return `${topic} "news article" OR "published" OR "reports" OR "announced"`;
+        return `${topic} news article`;
     }
-    
+
+    // Additional query variants to increase coverage
+    private createBroadQuery(topic: string): string {
+        return `latest ${topic} developments`;
+    }
+
+    private createRecentQuery(topic: string): string {
+        return `${topic} this week important`;
+    }
+
     private async fetchNewsFromGoogle(
         query: string, 
         dateRestrict: string, 
@@ -667,23 +736,17 @@ export default class DailyNewsPlugin extends Plugin {
                 start: startIndex.toString()
             });
             
-            // Add site restrictions for higher quality sources if prioritizing quality
-            if (prioritizeQuality) {
-                // Combine user preferred domains and quality sources
+            // Reduce quality filtering to get more results
+            if (prioritizeQuality && this.settings.strictQualityFiltering) {
+                // Only apply site restrictions if strict quality filtering is enabled
+                // and provide fewer domain restrictions
                 let qualitySources = [...this.settings.preferredDomains];
                 
-                // Add some quality sources if user hasn't specified enough
-                if (qualitySources.length < 5) {
-                    // Use a rotating subset of quality sources for variety
-                    const startIdx = (i * 5) % QUALITY_NEWS_SOURCES.length;
-                    const sourcesToAdd = QUALITY_NEWS_SOURCES.slice(startIdx, startIdx + 10);
-                    qualitySources = [...qualitySources, ...sourcesToAdd];
-                }
-                
-                // Take a subset to avoid overly long queries
-                const siteSubset = qualitySources.slice(0, 10);
+                // Take just a few quality sources to avoid over-filtering
+                const siteSubset = qualitySources.slice(0, 5);
                 if (siteSubset.length > 0) {
                     const sitesQuery = siteSubset.map(domain => `site:${domain}`).join(' OR ');
+                    // Add as an optional component rather than required
                     params.set('q', `${params.get('q')} (${sitesQuery})`);
                 }
             }
@@ -736,109 +799,6 @@ export default class DailyNewsPlugin extends Plugin {
         return allResults;
     }
     
-    // Simplified quality scoring with fewer special cases
-    private calculateQualityScore(item: SearchItem, domain: string): number {
-        let score = 5; // Base score
-        
-        // Domain quality checks
-        if (QUALITY_NEWS_SOURCES.some(source => domain.includes(source))) {
-            score += 2; // Boost for known quality sources
-        }
-        
-        if (this.settings.preferredDomains.some(source => domain.includes(source))) {
-            score += 2; // Boost for user's preferred domains
-        }
-        
-        // URL quality checks - simplified
-        const url = new URL(item.link);
-        
-        // Boost for article-like URLs
-        if (/\/article\/|\/story\/|\/news\/|\/\d{4}\/\d{2}\//.test(url.pathname)) {
-            score += 1.5;
-        }
-        
-        // Penalize obvious non-article pages
-        if (url.pathname === "/" || url.pathname.length < 3) {
-            score -= 3; // Penalize homepages but less severely
-        }
-        
-        // Content quality indicators - simplified checks
-        if (item.snippet) {
-            // Contains concrete data indicators
-            if (/\d+%|\d+ percent|\$\d+|\d+ million|\d+ billion/.test(item.snippet)) {
-                score += 1;
-            }
-            
-            // Contains quotes or reporting indicators
-            if (/"[^"]{8,}"/.test(item.snippet) || 
-                /'[^']{8,}'/.test(item.snippet) ||
-                /reported|announced|revealed|published|according to/.test(item.snippet)) {
-                score += 1;
-            }
-            
-            // Longer snippets are usually better
-            if (item.snippet.length > 120) {
-                score += 0.5;
-            }
-        }
-        
-        // Penalize excluded domains
-        if (this.settings.excludedDomains.some(excluded => domain.includes(excluded))) {
-            score -= 3;
-        }
-        
-        // Clamp the score between 1-10
-        return Math.max(1, Math.min(10, score));
-    }
-    
-    // Simplified filtering with adaptive thresholds
-    private applyQualityFilters(
-        newsItems: NewsItem[], 
-        qualityThreshold: number = 3,
-        minContentLength: number = 80
-    ): NewsItem[] {
-        return newsItems.filter(item => {
-            try {
-                // Skip items without essential data
-                if (!item.title || !item.snippet || !item.link) {
-                    return false;
-                }
-                
-                // Apply domain filters
-                const url = new URL(item.link);
-                const domain = url.hostname.replace('www.', '');
-                
-                // Explicit domain exclusions
-                if (this.settings.excludedDomains.some(excluded => domain.includes(excluded))) {
-                    return false;
-                }
-                
-                // Minimum content length check
-                if (item.snippet.length < minContentLength) {
-                    return false;
-                }
-                
-                // Relaxed URL checks - only reject obvious non-articles
-                if (url.pathname === "/" && url.search === "") {
-                    return false; // Reject root domain with no query
-                }
-                
-                // Basic content quality - reject obvious website descriptions
-                if (/is a website|is the official|official site of/.test(item.snippet) && 
-                    item.snippet.length < 100) {
-                    return false;
-                }
-                
-                // Basic quality threshold check is the main filter now
-                return (item.qualityScore || 0) >= qualityThreshold;
-                
-            } catch (error) {
-                // console.error("Error in quality filtering:", error);
-                return false; // Reject any item that causes errors
-            }
-        });
-    }
-    
     // Simplified content cleaning
     private cleanNewsContent(text: string): string {
         if (!text) return '';
@@ -849,6 +809,107 @@ export default class DailyNewsPlugin extends Plugin {
             .replace(/\S+@\S+\.\S+/g, '')   // Remove emails
             .replace(/\s+/g, ' ')           // Normalize whitespace
             .trim();                         // Trim excess whitespace
+    }
+
+    // Much simplified filtering with lower thresholds
+    private calculateQualityScore(item: SearchItem, domain: string): number {
+        let score = 4; // Lower base score to be less restrictive
+        
+        // Domain quality checks - reduced impact
+        if (QUALITY_NEWS_SOURCES.some(source => domain.includes(source))) {
+            score += 1.5; // Reduced boost from 2 to 1.5
+        }
+        
+        if (this.settings.preferredDomains.some(source => domain.includes(source))) {
+            score += 1.5; // Reduced boost from 2 to 1.5
+        }
+        
+        // URL quality checks - significantly simplified
+        const url = new URL(item.link);
+        
+        // Boost for article-like URLs
+        if (/\/article\/|\/story\/|\/news\/|\/\d{4}\/\d{2}\//.test(url.pathname)) {
+            score += 1;
+        }
+        
+        // Less penalization for homepages
+        if (url.pathname === "/" || url.pathname.length < 3) {
+            score -= 1; // Reduced penalty from 3 to 1
+        }
+        
+        // Content quality indicators - simplified checks
+        if (item.snippet) {
+            // Contains concrete data indicators
+            if (/\d+%|\d+ percent|\$\d+|\d+ million|\d+ billion/.test(item.snippet)) {
+                score += 0.5;
+            }
+            
+            // Contains quotes or reporting indicators
+            if (/"[^"]{8,}"/.test(item.snippet) || 
+                /'[^']{8,}'/.test(item.snippet) ||
+                /reported|announced|revealed|published|according to/.test(item.snippet)) {
+                score += 0.5;
+            }
+            
+            // Longer snippets are usually better
+            if (item.snippet.length > 100) {
+                score += 0.5;
+            }
+        }
+        
+        // Less penalization for excluded domains
+        if (this.settings.excludedDomains.some(excluded => domain.includes(excluded))) {
+            score -= 2; // Reduced penalty from 3 to 2
+        }
+        
+        // Clamp the score between 1-10
+        return Math.max(1, Math.min(10, score));
+    }
+    
+    // Much simplified filtering with lower thresholds
+    private applyQualityFilters(
+        newsItems: NewsItem[], 
+        qualityThreshold: number = 3,
+        minContentLength: number = 80
+    ): NewsItem[] {
+        return newsItems.filter(item => {
+            try {
+                // Skip items without essential data
+                if (!item.title || !item.link) {
+                    return false;
+                }
+                
+                // Apply domain filters - only exclude explicitly banned domains
+                const url = new URL(item.link);
+                const domain = url.hostname.replace('www.', '');
+                
+                // Only apply strict exclusions
+                if (this.settings.excludedDomains.some(excluded => domain.includes(excluded))) {
+                    return false;
+                }
+                
+                // More lenient content length check - only if snippet exists
+                if (item.snippet && item.snippet.length < minContentLength) {
+                    // For short snippets, still accept if from a quality source
+                    const isQualitySource = QUALITY_NEWS_SOURCES.some(source => domain.includes(source));
+                    if (isQualitySource) return true;
+                    
+                    return false;
+                }
+                
+                // Very minimal URL checks - only reject obvious non-articles if strict filtering
+                if (this.settings.strictQualityFiltering && url.pathname === "/" && url.search === "") {
+                    return false; // Reject root domain with no query only in strict mode
+                }
+                
+                // Basic quality threshold check as a backstop only
+                return (item.qualityScore || 0) >= qualityThreshold;
+                
+            } catch (error) {
+                // If there's an error in filtering, still include the result
+                return this.settings.strictQualityFiltering ? false : true;
+            }
+        });
     }
 
     async generateSummary(newsItems: NewsItem[], topic: string): Promise<string> {
@@ -879,8 +940,8 @@ export default class DailyNewsPlugin extends Plugin {
             // Initialize the Gemini API
             const genAI = new GoogleGenerativeAI(this.settings.geminiApiKey);
             
-            // Use the model "gemini-2.0-flash" for better performance
-            const modelName = "gemini-2.0-flash";
+            // Use the model "gemini-2.5-flash" for better performance
+            const modelName = "gemini-2.5-flash";
                 
             // console.log(`Using model ${modelName} for summarization`);
             

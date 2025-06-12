@@ -199,6 +199,12 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Changelog
 
+### 1.5.2
+- Optimize Google Generation
+   - Search with AI generated queries (requires Gemini API) and cached for low API comsumption
+   - Enhance result filtering
+   - Upgrade to Gemini Flash 2.5
+
 ### 1.4.2
 - Enhance Sonar prompts
 
