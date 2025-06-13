@@ -632,7 +632,7 @@ export default class DailyNewsPlugin extends Plugin {
             
             const genAI = new GoogleGenerativeAI(this.settings.geminiApiKey);
             const model = genAI.getGenerativeModel({
-                model: "gemini-2.5-flash",
+                model: "gemini-2.0-flash",
                 generationConfig: {
                     temperature: 0.3, // Slightly increased temperature for more variety
                     topK: 40,
@@ -940,8 +940,8 @@ Only return the search query string itself, without any explanations or addition
             // Initialize the Gemini API
             const genAI = new GoogleGenerativeAI(this.settings.geminiApiKey);
             
-            // Use the model "gemini-2.5-flash" for better performance
-            const modelName = "gemini-2.5-flash";
+            // Use the model "gemini-2.0-flash" for better performance
+            const modelName = "gemini-2.0-flash";
                 
             // console.log(`Using model ${modelName} for summarization`);
             
