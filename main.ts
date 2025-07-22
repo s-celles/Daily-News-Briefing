@@ -367,28 +367,6 @@ class DailyNewsSettingTab extends PluginSettingTab {
                             this.plugin.settings.dateRange = value;
                             await this.plugin.saveSettings();
                         }));
-
-                new Setting(containerEl)
-                    .setName('Maximum search results')
-                    .setDesc('Total search results to fetch (higher values give more options but use more API quota)')
-                    .addSlider(slider => slider
-                        .setLimits(10, 50, 5)
-                        .setValue(this.plugin.settings.maxSearchResults)
-                        .setDynamicTooltip()
-                        .onChange(async (value) => {
-                            this.plugin.settings.maxSearchResults = value;
-                            await this.plugin.saveSettings();
-                        }));
-                        
-                new Setting(containerEl)
-                    .setName('Quality filtering')
-                    .setDesc('Enable stricter quality filters (may reduce number of results)')
-                    .addToggle(toggle => toggle
-                        .setValue(this.plugin.settings.strictQualityFiltering)
-                        .onChange(async (value) => {
-                            this.plugin.settings.strictQualityFiltering = value;
-                            await this.plugin.saveSettings();
-                        }));
                 
                 new Setting(containerEl)
                     .setName('Minimum content length')
