@@ -458,6 +458,10 @@ export default class DailyNewsPlugin extends Plugin {
         // Maximum results per query
         const maxResultsPerQuery = Math.min(10, this.settings.maxSearchResults / Object.keys(queries).length);
         
+        // Track API call successes and failures
+        let successfulQueries = 0;
+        let failedQueries = 0;
+        
         // Fetch results for each query type in parallel
         await Promise.all(Object.entries(queries).map(async ([queryType, queryString]) => {
             try {
@@ -473,13 +477,32 @@ export default class DailyNewsPlugin extends Plugin {
                         allNews.push(item);
                     }
                 }
+                
+                if (results.length > 0) {
+                    successfulQueries++;
+                }
             } catch (error) {
                 console.error(`Error fetching ${queryType} news:`, error);
+                failedQueries++;
             }
         }));
         
+        // If all queries failed or no news items were found, throw an error
+        if (failedQueries === Object.keys(queries).length || (allNews.length === 0 && successfulQueries === 0)) {
+            throw new Error(`Failed to fetch news for ${topic}. All queries failed.`);
+        }
+        
         // Use AI to judge and filter news items
-        const judgedNews = await this.judgeNewsWithAI(allNews, topic);
+        let judgedNews = allNews;
+        try {
+            if (allNews.length > 0) {
+                judgedNews = await this.judgeNewsWithAI(allNews, topic);
+            }
+        } catch (error) {
+            console.error(`Error while judging news with AI: ${error.message}`);
+            // Use original list if AI judging fails, limited to the requested number of results
+            judgedNews = allNews.slice(0, this.settings.resultsPerTopic);
+        }
         
         const elapsedTime = (Date.now() - startTime) / 1000;
         console.log(`Fetched ${allNews.length} total items, AI selected ${judgedNews.length} items for ${topic} in ${elapsedTime}s`);
@@ -696,6 +719,7 @@ Only return the search query string itself, without any explanations or addition
         const actualRequests = Math.min(requestsNeeded, 3); // 允许更多请求获取更多选项
         
         let allResults: NewsItem[] = [];
+        let requestErrors = 0;
         
         for (let i = 0; i < actualRequests; i++) {
             if (allResults.length >= maxResults) break;
@@ -720,7 +744,15 @@ Only return the search query string itself, without any explanations or addition
                 
                 const data: SearchResponse = JSON.parse(response.text);
                 
+                // Check if the API returned an error
+                if (data.error) {
+                    console.error(`Google Search API error: ${data.error.message} (${data.error.status})`);
+                    requestErrors++;
+                    continue;
+                }
+                
                 if (!data || !data.items || data.items.length === 0) {
+                    // Not considering empty results as an error, just continue
                     continue;
                 }
                 
@@ -752,7 +784,13 @@ Only return the search query string itself, without any explanations or addition
                 
             } catch (error) {
                 console.error(`Search API error on page ${i+1}:`, error);
+                requestErrors++;
             }
+        }
+        
+        // If all requests failed and we have no results, throw an error
+        if (requestErrors === actualRequests && allResults.length === 0) {
+            throw new Error(`All ${requestErrors} API requests failed for query: ${query}`);
         }
         
         return allResults;
@@ -792,6 +830,11 @@ Only return the search query string itself, without any explanations or addition
         const prompt = this.getAIPrompt(enhancedNewsText, topic, this.settings.outputFormat);
 
         try {
+            // Check if API key is available
+            if (!this.settings.geminiApiKey) {
+                throw new Error('Missing Gemini API key');
+            }
+            
             // Initialize the Gemini API
             const genAI = new GoogleGenerativeAI(this.settings.geminiApiKey);
             
@@ -819,13 +862,18 @@ Only return the search query string itself, without any explanations or addition
             const resultPromise = model.generateContent(prompt);
             const result = await Promise.race([resultPromise, timeoutPromise]) as any;
             
+            // Validate result structure
+            if (!result || !result.response) {
+                throw new Error('Invalid AI response structure');
+            }
+            
             // Return the summary text
             return result.response.text();
         } catch (error) {
             console.error('Failed to generate summary:', error);
             
-            // Create a fallback summary with raw data
-            return this.createFallbackSummary(newsItems, topic);
+            // This error message will help detect failures in the generateDailyNews method
+            return `Error generating summary for ${topic}. ${error.message || 'Unknown error'}\n\nCheck the developer console for more information.`;
         }
     }
 
@@ -945,13 +993,18 @@ Format your summary as bullet points with concrete facts:
             
             if (response.status >= 200 && response.status < 300) {
                 const data = JSON.parse(response.text);
-                return data.choices[0].message.content;
+                if (data.choices && data.choices.length > 0 && data.choices[0].message && data.choices[0].message.content) {
+                    return data.choices[0].message.content;
+                } else {
+                    throw new Error('Invalid response format from Sonar API');
+                }
             } else {
                 // console.error(`Sonar API returned status ${response.status}: ${response.text}`);
                 throw new Error(`Sonar API returned status ${response.status}: ${response.text}`);
             }
         } catch (error) {
             console.error('Sonar API error:', error);
+            // This error message will be detected in the generateDailyNews method
             return `Error fetching news about ${topic} from Sonar API. Please check your API key and settings.\n\nError details: ${error.message}\n\nCheck the developer console for more information.`;
         }
     }
@@ -1004,6 +1057,11 @@ Format your summary as bullet points with concrete facts:
                 content += `- [${topic}](#${topic.toLowerCase().replace(/\s+/g, '%20')})\n`;
             });
 
+            // Track if any topics were successfully processed
+            let hasSuccessfulTopics = false;
+            // Track if all topics had retrieval errors
+            let allTopicsHadErrors = true;
+            
             // Process each topic
             for (const topic of this.settings.topics) {
                 try {
@@ -1019,18 +1077,40 @@ Format your summary as bullet points with concrete facts:
                             new Notice(`Summarizing ${newsItems.length} news items for ${topic}...`);
                             const summary = await this.generateSummary(newsItems, topic);
                             content += summary + '\n';
+                            hasSuccessfulTopics = true;
+                            allTopicsHadErrors = false;
                         } else {
                             content += `No recent news found for ${topic}.\n\n`;
+                            // Not marking as error, but not as success either
+                            allTopicsHadErrors = false;
                         }
                     } else if (this.settings.apiProvider === 'sonar') {
                         const summary = await this.fetchAndSummarizeWithSonar(topic);
-                        content += summary + '\n';
+                        
+                        // Check if the summary contains an error message
+                        if (summary.includes('Error fetching news about') || summary.includes('API error')) {
+                            content += summary + '\n';
+                        } else {
+                            content += summary + '\n';
+                            hasSuccessfulTopics = true;
+                            allTopicsHadErrors = false;
+                        }
                     }
 
                 } catch (topicError) {
                     console.error(`Error processing topic ${topic}:`, topicError);
                     content += `Error retrieving news for ${topic}. Please try again later.\n\n`;
+                    // Keep allTopicsHadErrors as true
                 }
+            }
+
+            // If all topics failed or no successful topics, don't create the file
+            if (allTopicsHadErrors || !hasSuccessfulTopics) {
+                if (this.settings.enableNotifications) {
+                    new Notice('Failed to retrieve news for any topics. No note was created.', 5000);
+                }
+                console.error('Failed to retrieve news for any topics. No note was created.');
+                return null;
             }
 
             // Create folder if it doesn't exist
@@ -1040,6 +1120,8 @@ Format your summary as bullet points with concrete facts:
                 }
             } catch (folderError) {
                 console.error("Failed to create folder:", folderError);
+                new Notice('Failed to create archive folder', 5000);
+                return null;
             }
 
             await this.app.vault.create(fileName, content);
@@ -1080,10 +1162,13 @@ Format your summary as bullet points with concrete facts:
                     setTimeout(() => {
                         this.openNewsFile(createdPath);
                     }, 1000); // Increased delay to ensure file is created and indexed
+                } else {
+                    // News generation failed, show a notification
+                    new Notice('Failed to generate news briefing. No note was created.', 5000);
                 }
             }
         } catch (error) {
-            // console.error('Error opening or creating daily news:', error);
+            console.error('Error opening or creating daily news:', error);
             new Notice('Unable to open or create daily news');
         }
     }
