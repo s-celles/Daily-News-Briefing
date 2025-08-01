@@ -1057,13 +1057,26 @@ Format your summary as bullet points with concrete facts:
                 content += `- [${topic}](#${topic.toLowerCase().replace(/\s+/g, '%20')})\n`;
             });
 
-            // Track if any topics were successfully processed
-            let hasSuccessfulTopics = false;
-            // Track if all topics had retrieval errors
-            let allTopicsHadErrors = true;
+            // Track topic processing status
+            type TopicStatus = {
+                topic: string;
+                retrievalSuccess: boolean;
+                summarizationSuccess: boolean;
+                newsCount: number;
+                error?: string;
+            };
+            
+            const topicStatuses: TopicStatus[] = [];
             
             // Process each topic
             for (const topic of this.settings.topics) {
+                const topicStatus: TopicStatus = {
+                    topic: topic,
+                    retrievalSuccess: false,
+                    summarizationSuccess: false,
+                    newsCount: 0
+                };
+                
                 try {
                     content += `\n---\n\n`;
                     content += `## ${topic}\n\n`;
@@ -1071,45 +1084,100 @@ Format your summary as bullet points with concrete facts:
                     new Notice(`Fetching news for ${topic}...`);
 
                     if (this.settings.apiProvider === 'google') {
-                        const newsItems = await this.fetchNews(topic);
-                        
-                        if (newsItems.length) {
-                            new Notice(`Summarizing ${newsItems.length} news items for ${topic}...`);
-                            const summary = await this.generateSummary(newsItems, topic);
-                            content += summary + '\n';
-                            hasSuccessfulTopics = true;
-                            allTopicsHadErrors = false;
-                        } else {
-                            content += `No recent news found for ${topic}.\n\n`;
-                            // Not marking as error, but not as success either
-                            allTopicsHadErrors = false;
+                        try {
+                            // Step 1: News Retrieval
+                            const newsItems = await this.fetchNews(topic);
+                            topicStatus.retrievalSuccess = true;
+                            topicStatus.newsCount = newsItems.length;
+                            
+                            if (newsItems.length) {
+                                try {
+                                    // Step 2: News Summarization
+                                    new Notice(`Summarizing ${newsItems.length} news items for ${topic}...`);
+                                    const summary = await this.generateSummary(newsItems, topic);
+                                    
+                                    // Check if summary contains error messages
+                                    if (summary.includes('Error generating summary') || summary.includes('Failed to generate')) {
+                                        topicStatus.error = `Summarization failed for topic "${topic}"`;
+                                        content += `**News retrieval successful, but summarization failed for ${topic}.**\n\n`;
+                                        content += `${summary}\n`;
+                                    } else {
+                                        topicStatus.summarizationSuccess = true;
+                                        content += summary + '\n';
+                                    }
+                                } catch (summarizationError) {
+                                    console.error(`Summarization error for ${topic}:`, summarizationError);
+                                    topicStatus.error = `Summarization error: ${summarizationError.message}`;
+                                    content += `**News retrieval successful, but summarization failed for ${topic}.**\n\n`;
+                                    content += `Error details: ${summarizationError.message}\n\n`;
+                                }
+                            } else {
+                                content += `No recent news found for ${topic}.\n\n`;
+                                topicStatus.error = `No news found for topic "${topic}"`;
+                            }
+                        } catch (retrievalError) {
+                            console.error(`News retrieval error for ${topic}:`, retrievalError);
+                            topicStatus.error = `Retrieval error: ${retrievalError.message}`;
+                            content += `**Failed to retrieve news for ${topic}.**\n\n`;
+                            content += `Error details: ${retrievalError.message}\n\n`;
                         }
                     } else if (this.settings.apiProvider === 'sonar') {
-                        const summary = await this.fetchAndSummarizeWithSonar(topic);
-                        
-                        // Check if the summary contains an error message
-                        if (summary.includes('Error fetching news about') || summary.includes('API error')) {
-                            content += summary + '\n';
-                        } else {
-                            content += summary + '\n';
-                            hasSuccessfulTopics = true;
-                            allTopicsHadErrors = false;
+                        try {
+                            // Sonar combines retrieval and summarization in one step
+                            const summary = await this.fetchAndSummarizeWithSonar(topic);
+                            
+                            // Check if summary contains error messages
+                            if (summary.includes('Error fetching news about') || summary.includes('API error')) {
+                                topicStatus.error = `Sonar API error for topic "${topic}"`;
+                                content += summary + '\n';
+                            } else {
+                                topicStatus.retrievalSuccess = true;
+                                topicStatus.summarizationSuccess = true;
+                                topicStatus.newsCount = 1; // We don't know exactly how many items Sonar found
+                                content += summary + '\n';
+                            }
+                        } catch (sonarError) {
+                            console.error(`Sonar API error for ${topic}:`, sonarError);
+                            topicStatus.error = `Sonar API error: ${sonarError.message}`;
+                            content += `**Failed to retrieve and summarize news for ${topic} using Sonar API.**\n\n`;
+                            content += `Error details: ${sonarError.message}\n\n`;
                         }
                     }
 
                 } catch (topicError) {
-                    console.error(`Error processing topic ${topic}:`, topicError);
+                    console.error(`Unexpected error processing topic ${topic}:`, topicError);
+                    topicStatus.error = `Unexpected error: ${topicError.message}`;
                     content += `Error retrieving news for ${topic}. Please try again later.\n\n`;
-                    // Keep allTopicsHadErrors as true
                 }
+                
+                topicStatuses.push(topicStatus);
             }
 
-            // If all topics failed or no successful topics, don't create the file
-            if (allTopicsHadErrors || !hasSuccessfulTopics) {
+            // Analyze results to determine if note should be created
+            const atLeastOneSuccessfulTopic = topicStatuses.some(status => 
+                status.retrievalSuccess && status.summarizationSuccess);
+                
+            const atLeastOneNewsItem = topicStatuses.some(status => status.newsCount > 0);
+            
+            const allTopicsFailed = topicStatuses.every(status => 
+                !status.retrievalSuccess || !status.summarizationSuccess);
+                
+            // Generate error analysis for logging
+            const errorSummary = topicStatuses
+                .filter(status => status.error)
+                .map(status => `${status.topic}: ${status.error}`)
+                .join('\n');
+                
+            // Decide whether to create the note
+            if (allTopicsFailed || !atLeastOneSuccessfulTopic) {
+                const errorMessage = atLeastOneNewsItem 
+                    ? 'News was retrieved for some topics, but summarization failed for all of them.' 
+                    : 'Failed to retrieve news for any topics.';
+                
                 if (this.settings.enableNotifications) {
-                    new Notice('Failed to retrieve news for any topics. No note was created.', 5000);
+                    new Notice(`${errorMessage} No note was created.`, 5000);
                 }
-                console.error('Failed to retrieve news for any topics. No note was created.');
+                console.error(`${errorMessage} No note was created.\nError details:\n${errorSummary}`);
                 return null;
             }
 
@@ -1122,6 +1190,20 @@ Format your summary as bullet points with concrete facts:
                 console.error("Failed to create folder:", folderError);
                 new Notice('Failed to create archive folder', 5000);
                 return null;
+            }
+
+            // Add an error summary at the end of the note if some topics failed
+            if (topicStatuses.some(status => status.error)) {
+                content += '\n---\n\n';
+                content += '## Processing Status\n\n';
+                content += 'Some topics encountered issues during processing:\n\n';
+                
+                for (const status of topicStatuses) {
+                    if (status.error) {
+                        const stage = !status.retrievalSuccess ? 'News Retrieval' : 'News Summarization';
+                        content += `- **${status.topic}**: Issue during ${stage} - ${status.error}\n`;
+                    }
+                }
             }
 
             await this.app.vault.create(fileName, content);

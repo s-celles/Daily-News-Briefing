@@ -205,7 +205,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Changelog
 
 ### 1.6.1
-- Add note generation failure handling.
+- Add improved note generation failure handling
 
 ### 1.6.0
 - Enable AI filtering instead of rule-based filtering.
