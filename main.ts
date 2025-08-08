@@ -25,6 +25,7 @@ interface DailyNewsSettings {
     // Output settings
     outputFormat: 'detailed' | 'concise';
     enableNotifications: boolean;
+    enableAnalysisContext: boolean; // New: Enable or disable "Analysis & Context" feature
     
     // Advanced settings
     dateRange: string;
@@ -59,6 +60,7 @@ const DEFAULT_SETTINGS: DailyNewsSettings = {
     // Output settings
     outputFormat: 'detailed',
     enableNotifications: true,
+    enableAnalysisContext: true, // Enable "Analysis & Context" feature by default
     
     // Advanced settings
     dateRange: 'd3', // Changed from d2 to d3 for broader date range
@@ -263,6 +265,17 @@ class DailyNewsSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.outputFormat)
                     .onChange(async (value: 'detailed' | 'concise') => {
                         this.plugin.settings.outputFormat = value;
+                        await this.plugin.saveSettings();
+                    }));
+                    
+            // Add option to enable analysis & context
+            new Setting(containerEl)
+                .setName('Enable analysis & context')
+                .setDesc('Include analytical section in detailed news summaries')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.enableAnalysisContext)
+                    .onChange(async (value) => {
+                        this.plugin.settings.enableAnalysisContext = value;
                         await this.plugin.saveSettings();
                     }));
         }
@@ -658,7 +671,7 @@ Only return the search query string itself, without any explanations or addition
             }
         }
         
-        // 如果AI没有选择任何项目或响应格式不正确，返回前N个项目作为后备
+        // If AI didn't select any items or response format is incorrect, return first N items as fallback
         if (selectedItems.length === 0) {
             console.log('AI judge returned no items, using fallback selection');
             return originalItems.slice(0, Math.min(this.settings.resultsPerTopic, originalItems.length));
@@ -897,41 +910,48 @@ Only return the search query string itself, without any explanations or addition
         if (this.settings.apiProvider === 'google') {
             basePrompt = `Analyze these news articles about ${topic} and provide a substantive summary:
 
-                ${newsText}
+            ${newsText}
 
-                KEY REQUIREMENTS:
-                1. Focus on concrete developments, facts, and data
-                2. For each news item include the SOURCE in markdown format: [Source](URL)
-                3. Use specific dates rather than relative time references
-                4. Prioritize news with specific details (numbers, names, quotes)
-                5. If content lacks substance, state "Limited substantive news found on ${topic}"`;
+            KEY REQUIREMENTS:
+            1. Focus on concrete developments, facts, and data
+            2. For each news item include the SOURCE in markdown format: [Source](URL)
+            3. Use specific dates rather than relative time references
+            4. Prioritize news with specific details (numbers, names, quotes)
+            5. If content lacks substance, state "Limited substantive news found on ${topic}"`;
         } else {
             // For Sonar API, use a different prompt structure
             basePrompt = `You are a helpful AI assistant. Please answer in the required format.
 
-                KEY REQUIREMENTS:
-                1. Focus on concrete developments, facts, and data
-                2. For each news item include the SOURCE in markdown format: [Source](URL)
-                3. Use specific dates rather than relative time references
-                4. Prioritize news with specific details (numbers, names, quotes)
-                5. Only return the news - do not include any meta-narratives, explanations, or instructions. 
-                6. If content lacks substance, state "Limited substantive news found on ${topic}"`;
+            KEY REQUIREMENTS:
+            1. Focus on concrete developments, facts, and data
+            2. For each news item include the SOURCE in markdown format: [Source](URL)
+            3. Use specific dates rather than relative time references
+            4. Prioritize news with specific details (numbers, names, quotes)
+            5. Only return the news - do not include any meta-narratives, explanations, or instructions. 
+            6. If content lacks substance, state "Limited substantive news found on ${topic}"`;
 
             return basePrompt;
         }
 
         // Add format-specific instructions
         if (format === 'detailed') {
-            return basePrompt + `
+            let formattedPrompt = basePrompt + `
 
 Format your summary with these sections:
 
 ### Key Developments
 - **[Clear headline with key detail]**: Concrete facts with specific details. [Source](URL)
-- **[Clear headline with key detail]**: Concrete facts with specific details. [Source](URL)
+- **[Clear headline with key detail]**: Concrete facts with specific details. [Source](URL)`;
+
+            // Only add analysis section if the feature is enabled
+            if (this.settings.enableAnalysisContext) {
+                formattedPrompt += `
 
 ### Analysis & Context
 [Provide context, implications, or background for the most significant developments]`;
+            }
+            
+            return formattedPrompt;
         } else {
             return basePrompt + `
 

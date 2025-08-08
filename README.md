@@ -204,6 +204,9 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Changelog
 
+### 1.6.2
+- Users now can enable or disable "Analysis & Context" function based on their preference.
+
 ### 1.6.1
 - Add improved note generation failure handling
 
