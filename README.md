@@ -1,7 +1,7 @@
 # Daily News Briefing for Obsidian
 
 > [!IMPORTANT]
-> Daily-News-Briefing has been featured by (Perplexity Cookbook)[https://docs.perplexity.ai/cookbook/showcase/daily-news-briefing]!
+> Daily-News-Briefing has been featured by [Perplexity Cookbook](https://docs.perplexity.ai/cookbook/showcase/daily-news-briefing)!
 
 Get AI-powered daily news summaries directly in your Obsidian vault. Stay informed about your topics of interest with smart, automated news collection and summarization.
 
