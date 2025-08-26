@@ -207,14 +207,17 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Changelog
 
+### 1.7.0
+- Enable multi-language support thanks to [@s-celles](https://github.com/s-celles)
+
 ### 1.6.2
-- Users now can enable or disable "Analysis & Context" function based on their preference.
+- Users now can enable or disable "Analysis & Context" function based on their preference
 
 ### 1.6.1
 - Add improved note generation failure handling
 
 ### 1.6.0
-- Enable AI filtering instead of rule-based filtering.
+- Enable AI filtering instead of rule-based filtering
 
 ### 1.5.1
 - Use Gemini Flash 2.0 instead of 2.5

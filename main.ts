@@ -18,6 +18,9 @@ interface DailyNewsSettings {
     scheduleTime: string;
     archiveFolder: string;
     
+    // Language settings
+    language: string; // ISO 639-1 language code (e.g., 'en', 'fr', 'de')
+    
     // Content quality settings
     resultsPerTopic: number;
     maxSearchResults: number;
@@ -52,6 +55,9 @@ const DEFAULT_SETTINGS: DailyNewsSettings = {
     topics: ['Technology', 'World News'],
     scheduleTime: '08:00',
     archiveFolder: 'News Archive',
+    
+    // Language settings
+    language: 'en', // Default to English
     
     // Content quality settings
     resultsPerTopic: 8,
@@ -189,6 +195,17 @@ class DailyNewsSettingTab extends PluginSettingTab {
 
         // News Configuration section
         containerEl.createEl('h2', {text: 'News Configuration'});
+        
+        new Setting(containerEl)
+            .setName('Language')
+            .setDesc('Language for news content (ISO 639-1 code: en, fr, de, es, etc.)')
+            .addText(text => text
+                .setPlaceholder('en')
+                .setValue(this.plugin.settings.language)
+                .onChange(async (value) => {
+                    this.plugin.settings.language = value;
+                    await this.plugin.saveSettings();
+                }));
         
         new Setting(containerEl)
             .setName('Topics')
@@ -396,6 +413,60 @@ class DailyNewsSettingTab extends PluginSettingTab {
     }
 }
 
+// Language translations for different UI elements
+const LANGUAGE_TRANSLATIONS = {
+    'en': {
+        keyDevelopments: 'Key Developments',
+        analysisContext: 'Analysis & Context',
+        processingStatus: 'Processing Status',
+        generatedAt: 'Generated at',
+        tableOfContents: 'Table of Contents',
+        noRecentNews: 'No recent news found for',
+        errorRetrieving: 'Error retrieving news for',
+        limitedNews: 'Limited substantive news found on'
+    },
+    'fr': {
+        keyDevelopments: 'Développements Clés',
+        analysisContext: 'Analyse et Contexte',
+        processingStatus: 'Statut du Traitement',
+        generatedAt: 'Généré à',
+        tableOfContents: 'Table des Matières',
+        noRecentNews: 'Aucune actualité récente trouvée pour',
+        errorRetrieving: 'Erreur lors de la récupération des actualités pour',
+        limitedNews: 'Actualités substantielles limitées trouvées sur'
+    },
+    'de': {
+        keyDevelopments: 'Wichtige Entwicklungen',
+        analysisContext: 'Analyse & Kontext',
+        processingStatus: 'Verarbeitungsstatus',
+        generatedAt: 'Erstellt am',
+        tableOfContents: 'Inhaltsverzeichnis',
+        noRecentNews: 'Keine aktuellen Nachrichten gefunden für',
+        errorRetrieving: 'Fehler beim Abrufen von Nachrichten für',
+        limitedNews: 'Begrenzte substanzielle Nachrichten gefunden zu'
+    },
+    'es': {
+        keyDevelopments: 'Desarrollos Clave',
+        analysisContext: 'Análisis y Contexto',
+        processingStatus: 'Estado del Procesamiento',
+        generatedAt: 'Generado a las',
+        tableOfContents: 'Tabla de Contenidos',
+        noRecentNews: 'No se encontraron noticias recientes para',
+        errorRetrieving: 'Error al recuperar noticias para',
+        limitedNews: 'Noticias sustanciales limitadas encontradas sobre'
+    },
+    'it': {
+        keyDevelopments: 'Sviluppi Chiave',
+        analysisContext: 'Analisi e Contesto',
+        processingStatus: 'Stato di Elaborazione',
+        generatedAt: 'Generato alle',
+        tableOfContents: 'Sommario',
+        noRecentNews: 'Nessuna notizia recente trovata per',
+        errorRetrieving: 'Errore nel recuperare notizie per',
+        limitedNews: 'Notizie sostanziali limitate trovate su'
+    }
+};
+
 export default class DailyNewsPlugin extends Plugin {
     settings: DailyNewsSettings;
 
@@ -540,7 +611,7 @@ export default class DailyNewsPlugin extends Plugin {
                 }
             });
             
-            // Modified prompt to encourage broader, more inclusive queries
+            // Modified prompt to create English search queries regardless of target language
             const prompt = `You are a search optimization expert. Create a Google search query for the topic "${topic}" that will find recent news articles.
 The generated query should:
 1. Be broad enough to catch a variety of news on this topic
@@ -548,6 +619,7 @@ The generated query should:
 3. Include relevant synonyms and related terms
 4. Avoid overuse of restrictive operators
 5. Be no more than 150 characters
+6. Be in English regardless of the topic language
 
 Only return the search query string itself, without any explanations or additional text.`;
 
@@ -598,16 +670,20 @@ Only return the search query string itself, without any explanations or addition
     }
 
     private getAIJudgePrompt(newsItems: NewsItem[], topic: string): string {
-        // 如果用户有自定义判断提示词，使用它
+        // If user has custom judge prompt, use it
         if (this.settings.aiJudgePrompt && this.settings.aiJudgePrompt.trim()) {
             const newsText = this.formatNewsForJudge(newsItems);
             return this.settings.aiJudgePrompt.replace('{{NEWS_TEXT}}', newsText).replace('{{TOPIC}}', topic);
         }
 
-        // 默认判断提示词
+        // Language instruction
+        const languageInstruction = this.settings.language !== 'en' ? 
+            ` Respond entirely in the language with ISO 639-1 code "${this.settings.language}".` : '';
+
+        // Default judge prompt
         const newsText = this.formatNewsForJudge(newsItems);
         
-        return `You are a professional news editor evaluating news articles for a daily briefing about "${topic}".
+        return `You are a professional news editor evaluating news articles for a daily briefing about "${topic}".${languageInstruction}
 
     Please evaluate each news item and decide whether to KEEP or SKIP it based on these criteria:
 
@@ -682,10 +758,11 @@ Only return the search query string itself, without any explanations or addition
 
     // Simplified query builder with broader terms to get more results
     private buildOptimizedQuery(topic: string): string {
+        // Always use English for search to get the most comprehensive results
         // Base query with the topic
         let query = `${topic}`;
         
-        // Add broader terms for all topics to increase result count
+        // Add English news terms regardless of target language
         query += ' news OR updates OR recent OR latest';
         
         // Add topic-specific terms - using more general terms
@@ -709,12 +786,12 @@ Only return the search query string itself, without any explanations or addition
         return query;
     }
 
-    // Create a more generic query to capture more results
+    // Create a more generic query to capture more results - always in English
     private createSpecificQuery(topic: string): string {
         return `${topic} news article`;
     }
 
-    // Additional query variants to increase coverage
+    // Additional query variants to increase coverage - always in English
     private createBroadQuery(topic: string): string {
         return `latest ${topic} developments`;
     }
@@ -729,7 +806,7 @@ Only return the search query string itself, without any explanations or addition
         maxResults: number = 10
     ): Promise<NewsItem[]> {
         const requestsNeeded = Math.ceil(maxResults / 10);
-        const actualRequests = Math.min(requestsNeeded, 3); // 允许更多请求获取更多选项
+        const actualRequests = Math.min(requestsNeeded, 3);
         
         let allResults: NewsItem[] = [];
         let requestErrors = 0;
@@ -905,10 +982,14 @@ Only return the search query string itself, without any explanations or addition
             return this.settings.customPrompt.replace('{{NEWS_TEXT}}', newsText);
         }
         
+        // Language instruction - Make it clear to translate from English to target language if needed
+        const languageInstruction = this.settings.language !== 'en' ? 
+            ` Translate all content into the language with ISO 639-1 code "${this.settings.language}". The source news may be in English but your response should be entirely in the target language.` : '';
+        
         // If no custom prompt, use default based on provider
         let basePrompt = ``;
         if (this.settings.apiProvider === 'google') {
-            basePrompt = `Analyze these news articles about ${topic} and provide a substantive summary:
+            basePrompt = `Analyze these news articles about ${topic} and provide a substantive summary.${languageInstruction}
 
             ${newsText}
 
@@ -917,10 +998,10 @@ Only return the search query string itself, without any explanations or addition
             2. For each news item include the SOURCE in markdown format: [Source](URL)
             3. Use specific dates rather than relative time references
             4. Prioritize news with specific details (numbers, names, quotes)
-            5. If content lacks substance, state "Limited substantive news found on ${topic}"`;
+            5. If content lacks substance, state "${this.getTranslation('limitedNews')} ${topic}"`;
         } else {
-            // For Sonar API, use a different prompt structure
-            basePrompt = `You are a helpful AI assistant. Please answer in the required format.
+            // For Sonar API, use a different prompt structure with explicit translation instruction
+            basePrompt = `You are a helpful AI assistant. Please answer in the required format.${languageInstruction}
 
             KEY REQUIREMENTS:
             1. Focus on concrete developments, facts, and data
@@ -928,7 +1009,7 @@ Only return the search query string itself, without any explanations or addition
             3. Use specific dates rather than relative time references
             4. Prioritize news with specific details (numbers, names, quotes)
             5. Only return the news - do not include any meta-narratives, explanations, or instructions. 
-            6. If content lacks substance, state "Limited substantive news found on ${topic}"`;
+            6. If content lacks substance, state "${this.getTranslation('limitedNews')} ${topic}"`;
 
             return basePrompt;
         }
@@ -939,7 +1020,7 @@ Only return the search query string itself, without any explanations or addition
 
 Format your summary with these sections:
 
-### Key Developments
+### ${this.getTranslation('keyDevelopments')}
 - **[Clear headline with key detail]**: Concrete facts with specific details. [Source](URL)
 - **[Clear headline with key detail]**: Concrete facts with specific details. [Source](URL)`;
 
@@ -947,7 +1028,7 @@ Format your summary with these sections:
             if (this.settings.enableAnalysisContext) {
                 formattedPrompt += `
 
-### Analysis & Context
+### ${this.getTranslation('analysisContext')}
 [Provide context, implications, or background for the most significant developments]`;
             }
             
@@ -979,7 +1060,7 @@ Format your summary as bullet points with concrete facts:
             // Build system message based on output format
             let systemMessage = this.getAIPrompt('', topic, this.settings.outputFormat);
             
-            // Prepare request body
+            // Prepare request body - Always search in English but translate results to target language
             const requestBody = {
                 model: "sonar",
                 messages: [
@@ -989,7 +1070,9 @@ Format your summary as bullet points with concrete facts:
                     },
                     {
                         role: "user",
-                        content: `What are the latest significant news about "${topic}"?`
+                        content: this.settings.language !== 'en' ? 
+                            `What are the latest significant news about "${topic}"? Search for information in English, but translate your final response into the language with ISO 639-1 code "${this.settings.language}".` :
+                            `What are the latest significant news about "${topic}"?`
                     }
                 ],
             };
@@ -1052,6 +1135,20 @@ Format your summary as bullet points with concrete facts:
             return null;
         }
 
+        // Language Validation - modified to handle missing translations
+        if (this.settings.language.length !== 2) {
+            new Notice("Invalid language code. Please enter a valid ISO 639-1 code (e.g., 'en', 'fr').", 5000);
+            return null;
+        }
+        
+        // If language doesn't have translations, warn but continue with English
+        if (!LANGUAGE_TRANSLATIONS[this.settings.language]) {
+            console.warn(`No translations available for language code "${this.settings.language}". Using English as fallback for UI elements.`);
+            // Optional: show notice to user
+            new Notice(`No translations available for "${this.settings.language}". UI will show in English, but content will be in the selected language.`, 4000);
+            // We don't return null here, allowing the process to continue with English UI
+        }
+
         const date = new Date().toISOString().split('T')[0];
         
         try {
@@ -1068,11 +1165,11 @@ Format your summary as bullet points with concrete facts:
             }
             
             // Basic header content
-            let content = `*Generated at ${new Date().toLocaleTimeString()}*\n\n`;
+            let content = `*${this.getTranslation('generatedAt')} ${new Date().toLocaleTimeString()}*\n\n`;
             content += `---\n\n`;
 
             // Add table of contents
-            content += `## Table of Contents\n\n`;
+            content += `## ${this.getTranslation('tableOfContents')}\n\n`;
             this.settings.topics.forEach(topic => {
                 content += `- [${topic}](#${topic.toLowerCase().replace(/\s+/g, '%20')})\n`;
             });
@@ -1132,13 +1229,13 @@ Format your summary as bullet points with concrete facts:
                                     content += `Error details: ${summarizationError.message}\n\n`;
                                 }
                             } else {
-                                content += `No recent news found for ${topic}.\n\n`;
+                                content += `${this.getTranslation('noRecentNews')} ${topic}.\n\n`;
                                 topicStatus.error = `No news found for topic "${topic}"`;
                             }
                         } catch (retrievalError) {
                             console.error(`News retrieval error for ${topic}:`, retrievalError);
                             topicStatus.error = `Retrieval error: ${retrievalError.message}`;
-                            content += `**Failed to retrieve news for ${topic}.**\n\n`;
+                            content += `**${this.getTranslation('errorRetrieving')} ${topic}.**\n\n`;
                             content += `Error details: ${retrievalError.message}\n\n`;
                         }
                     } else if (this.settings.apiProvider === 'sonar') {
@@ -1159,7 +1256,7 @@ Format your summary as bullet points with concrete facts:
                         } catch (sonarError) {
                             console.error(`Sonar API error for ${topic}:`, sonarError);
                             topicStatus.error = `Sonar API error: ${sonarError.message}`;
-                            content += `**Failed to retrieve and summarize news for ${topic} using Sonar API.**\n\n`;
+                            content += `**${this.getTranslation('errorRetrieving')} ${topic} using Sonar API.**\n\n`;
                             content += `Error details: ${sonarError.message}\n\n`;
                         }
                     }
@@ -1167,7 +1264,7 @@ Format your summary as bullet points with concrete facts:
                 } catch (topicError) {
                     console.error(`Unexpected error processing topic ${topic}:`, topicError);
                     topicStatus.error = `Unexpected error: ${topicError.message}`;
-                    content += `Error retrieving news for ${topic}. Please try again later.\n\n`;
+                    content += `${this.getTranslation('errorRetrieving')} ${topic}. Please try again later.\n\n`;
                 }
                 
                 topicStatuses.push(topicStatus);
@@ -1215,7 +1312,7 @@ Format your summary as bullet points with concrete facts:
             // Add an error summary at the end of the note if some topics failed
             if (topicStatuses.some(status => status.error)) {
                 content += '\n---\n\n';
-                content += '## Processing Status\n\n';
+                content += `## ${this.getTranslation('processingStatus')}\n\n`;
                 content += 'Some topics encountered issues during processing:\n\n';
                 
                 for (const status of topicStatuses) {
@@ -1325,5 +1422,14 @@ Format your summary as bullet points with concrete facts:
             // console.error('Error in openNewsFile:', error);
             new Notice('Error opening news file');
         }
+    }
+
+    // Helper method to get language-specific translations
+    private getTranslation(key: string): string {
+        // Get the language-specific translations or default to English
+        const translations = LANGUAGE_TRANSLATIONS[this.settings.language] || LANGUAGE_TRANSLATIONS['en'];
+        
+        // Return the translation for the key or the key itself if no translation exists
+        return translations[key] || LANGUAGE_TRANSLATIONS['en'][key] || key;
     }
 }
