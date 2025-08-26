@@ -472,10 +472,7 @@ const LANGUAGE_TRANSLATIONS = {
 export default class DailyNewsPlugin extends Plugin {
     settings: DailyNewsSettings;
 
-    private getTranslation(key: keyof typeof LANGUAGE_TRANSLATIONS['en']): string {
-        const lang = this.settings.language || 'en';
-        const translations = LANGUAGE_TRANSLATIONS[lang as keyof typeof LANGUAGE_TRANSLATIONS] || LANGUAGE_TRANSLATIONS['en'];
-        return translations[key] || LANGUAGE_TRANSLATIONS['en'][key] || key;
+        return translations[key] || LANGUAGE_TRANSLATIONS['en'][key] || "Translation not available";
     }
 
     async onload() {
