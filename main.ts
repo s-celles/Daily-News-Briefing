@@ -203,11 +203,9 @@ class DailyNewsSettingTab extends PluginSettingTab {
                 .setPlaceholder('en')
                 .setValue(this.plugin.settings.language)
                 .onChange(async (value) => {
-                    // Validate ISO 639-1 format (2 letter code)
-                    const langCode = value.trim().toLowerCase();
-                    if (langCode.length === 2 && /^[a-z]{2}$/.test(langCode)) {
-                        this.plugin.settings.language = langCode;
                         await this.plugin.saveSettings();
+                    } else {
+                        new Notice("Invalid language code. Please enter a valid ISO 639-1 code (e.g., 'en', 'fr').");
                     }
                 }));
         
