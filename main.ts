@@ -1,9 +1,12 @@
 import { App, Plugin, PluginSettingTab, Setting, Notice, TFile, requestUrl } from 'obsidian';
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { generateText } from 'ai';
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { createOpenAI } from '@ai-sdk/openai';
 
 interface DailyNewsSettings {
     // API provider selection
-    apiProvider: 'google' | 'sonar';
+    apiProvider: 'google' | 'sonar' | 'claude' | 'openai';
 
     // Google API settings
     googleSearchApiKey: string;
@@ -12,6 +15,14 @@ interface DailyNewsSettings {
 
     // Perplexity API settings
     perplexityApiKey: string;
+    
+    // Claude API settings
+    claudeApiKey: string;
+    claudeModel: string;
+    
+    // OpenAI API settings
+    openaiApiKey: string;
+    openaiModel: string;
     
     // Core functionality
     topics: string[];
@@ -50,6 +61,14 @@ const DEFAULT_SETTINGS: DailyNewsSettings = {
 
     // Perplexity API settings
     perplexityApiKey: '',
+    
+    // Claude API settings
+    claudeApiKey: '',
+    claudeModel: 'claude-opus-4-20250514',
+    
+    // OpenAI API settings
+    openaiApiKey: '',
+    openaiModel: 'gpt-4o',
     
     // Core functionality
     topics: ['Technology', 'World News'],
@@ -124,12 +143,14 @@ class DailyNewsSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('API Provider')
-            .setDesc('Select either Google APIs (requires 3 keys) or Sonar API (requires 1 key)')
+            .setDesc('Select your preferred AI provider')
             .addDropdown(dropdown => dropdown
                 .addOption('google', 'Google (Search + Gemini)')
                 .addOption('sonar', 'Sonar by Perplexity')
+                .addOption('claude', 'Claude (Anthropic)')
+                .addOption('openai', 'OpenAI (GPT-4)')
                 .setValue(this.plugin.settings.apiProvider)
-                .onChange(async (value: 'google' | 'sonar') => {
+                .onChange(async (value: 'google' | 'sonar' | 'claude' | 'openai') => {
                     this.plugin.settings.apiProvider = value;
                     await this.plugin.saveSettings();
                     this.display(); // Refresh to show/hide appropriate fields
@@ -173,7 +194,7 @@ class DailyNewsSettingTab extends PluginSettingTab {
                         this.plugin.settings.geminiApiKey = value;
                         await this.plugin.saveSettings();
                     }));
-        } else {
+        } else if (this.plugin.settings.apiProvider === 'sonar') {
             // Sonar API settings
             new Setting(containerEl)
                 .setName('Sonar API key')
@@ -191,6 +212,124 @@ class DailyNewsSettingTab extends PluginSettingTab {
                 text: 'Sonar API combines search and summarization in one step, providing a simpler setup with only one API key.',
                 cls: 'setting-item-description'
             });
+        } else if (this.plugin.settings.apiProvider === 'claude') {
+            // Claude API settings
+            new Setting(containerEl)
+                .setName('Claude API key')
+                .setDesc('Your Anthropic Claude API key')
+                .addText(text => text
+                    .setPlaceholder('Enter Claude API key')
+                    .setValue(this.plugin.settings.claudeApiKey)
+                    .onChange(async (value) => {
+                        this.plugin.settings.claudeApiKey = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(containerEl)
+                .setName('Claude Model')
+                .setDesc('Enter Claude model name (e.g., claude-opus-4-20250514, claude-3-5-sonnet-20241022, claude-3-haiku-20240307). See Anthropic documentation for available models.')
+                .addText(text => text
+                    .setPlaceholder('claude-opus-4-20250514')
+                    .setValue(this.plugin.settings.claudeModel)
+                    .onChange(async (value) => {
+                        this.plugin.settings.claudeModel = value;
+                        await this.plugin.saveSettings();
+                    }));
+                    
+            // Add message about Claude advantages with documentation link
+            const claudeHelpDiv = containerEl.createEl('div', {
+                cls: 'setting-item-description'
+            });
+            claudeHelpDiv.innerHTML = 'Claude excels at analysis and reasoning. Uses free RSS feeds from major news sources like BBC, CNN, and Reuters for news fetching.<br><strong>Available models:</strong> <a href="https://docs.anthropic.com/en/docs/about-claude/models" target="_blank">View Anthropic model documentation</a>';
+            
+            // Add API test button for Claude
+            new Setting(containerEl)
+                .setName('Test Claude API connection')
+                .setDesc('Test if your Claude API key and model are working correctly')
+                .addButton(button => button
+                    .setButtonText('Test Connection')
+                    .onClick(async () => {
+                        button.setButtonText('Testing...');
+                        button.setDisabled(true);
+                        
+                        try {
+                            const success = await this.plugin.testClaudeConnection();
+                            if (success) {
+                                new Notice('✅ Claude API connection successful!', 3000);
+                                button.setButtonText('Test Passed ✅');
+                            } else {
+                                new Notice('❌ Claude API connection failed. Check console for details.', 5000);
+                                button.setButtonText('Test Failed ❌');
+                            }
+                        } catch (error) {
+                            new Notice(`❌ Test error: ${error.message}`, 5000);
+                            button.setButtonText('Test Failed ❌');
+                        }
+                        
+                        setTimeout(() => {
+                            button.setButtonText('Test Connection');
+                            button.setDisabled(false);
+                        }, 3000);
+                    }));
+        } else if (this.plugin.settings.apiProvider === 'openai') {
+            // OpenAI API settings
+            new Setting(containerEl)
+                .setName('OpenAI API key')
+                .setDesc('Your OpenAI API key')
+                .addText(text => text
+                    .setPlaceholder('Enter OpenAI API key')
+                    .setValue(this.plugin.settings.openaiApiKey)
+                    .onChange(async (value) => {
+                        this.plugin.settings.openaiApiKey = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(containerEl)
+                .setName('OpenAI Model')
+                .setDesc('Enter OpenAI model name (e.g., gpt-4o, gpt-4o-mini, gpt-4-turbo). See OpenAI documentation for available models.')
+                .addText(text => text
+                    .setPlaceholder('gpt-4o')
+                    .setValue(this.plugin.settings.openaiModel)
+                    .onChange(async (value) => {
+                        this.plugin.settings.openaiModel = value;
+                        await this.plugin.saveSettings();
+                    }));
+                    
+            // Add message about OpenAI advantages with documentation link
+            const openaiHelpDiv = containerEl.createEl('div', {
+                cls: 'setting-item-description'
+            });
+            openaiHelpDiv.innerHTML = 'OpenAI GPT-4 provides excellent news summarization. Uses free RSS feeds from major news sources like BBC, CNN, and Reuters for news fetching.<br><strong>Available models:</strong> <a href="https://platform.openai.com/docs/models" target="_blank">View OpenAI model documentation</a>';
+            
+            // Add API test button for OpenAI
+            new Setting(containerEl)
+                .setName('Test OpenAI API connection')
+                .setDesc('Test if your OpenAI API key and model are working correctly')
+                .addButton(button => button
+                    .setButtonText('Test Connection')
+                    .onClick(async () => {
+                        button.setButtonText('Testing...');
+                        button.setDisabled(true);
+                        
+                        try {
+                            const success = await this.plugin.testOpenAIConnection();
+                            if (success) {
+                                new Notice('✅ OpenAI API connection successful!', 3000);
+                                button.setButtonText('Test Passed ✅');
+                            } else {
+                                new Notice('❌ OpenAI API connection failed. Check console for details.', 5000);
+                                button.setButtonText('Test Failed ❌');
+                            }
+                        } catch (error) {
+                            new Notice(`❌ Test error: ${error.message}`, 5000);
+                            button.setButtonText('Test Failed ❌');
+                        }
+                        
+                        setTimeout(() => {
+                            button.setButtonText('Test Connection');
+                            button.setDisabled(false);
+                        }, 3000);
+                    }));
         }
 
         // News Configuration section
@@ -241,7 +380,7 @@ class DailyNewsSettingTab extends PluginSettingTab {
                 }));
 
         if (this.plugin.settings.apiProvider === 'google') {
-            // Search Configuration section
+            // Search Configuration section (applies to Google provider only)
             containerEl.createEl('h2', {text: 'Search Configuration'});
             
             new Setting(containerEl)
@@ -267,12 +406,27 @@ class DailyNewsSettingTab extends PluginSettingTab {
                         this.plugin.settings.maxSearchResults = value;
                         await this.plugin.saveSettings();
                     }));
+        } else if (this.plugin.settings.apiProvider === 'claude' || this.plugin.settings.apiProvider === 'openai') {
+            // Simplified configuration for RSS-based providers
+            containerEl.createEl('h2', {text: 'News Configuration'});
+            
+            new Setting(containerEl)
+                .setName('News items per topic')
+                .setDesc('Maximum number of news items to include per topic')
+                .addSlider(slider => slider
+                    .setLimits(3, 15, 1)
+                    .setValue(this.plugin.settings.resultsPerTopic)
+                    .setDynamicTooltip()
+                    .onChange(async (value) => {
+                        this.plugin.settings.resultsPerTopic = value;
+                        await this.plugin.saveSettings();
+                    }));
         }
 
         // Output Settings section
         containerEl.createEl('h2', {text: 'Output Configuration'});
         
-        if (this.plugin.settings.apiProvider === 'google') {
+        if (this.plugin.settings.apiProvider === 'google' || this.plugin.settings.apiProvider === 'claude' || this.plugin.settings.apiProvider === 'openai') {
             new Setting(containerEl)
                 .setName('Output style')
                 .setDesc('Choose level of detail for news summaries')
@@ -345,6 +499,30 @@ class DailyNewsSettingTab extends PluginSettingTab {
                             await this.plugin.saveSettings();
                         }));
 
+                new Setting(containerEl)
+                    .setName('Use AI news judgment')
+                    .setDesc('Let AI evaluate and select the most relevant news items')
+                    .addToggle(toggle => toggle
+                        .setValue(this.plugin.settings.useAIJudge)
+                        .onChange(async (value) => {
+                            this.plugin.settings.useAIJudge = value;
+                            await this.plugin.saveSettings();
+                            this.display(); // Refresh to show/hide custom prompt
+                        }));
+                
+                if (this.plugin.settings.useAIJudge) {
+                    new Setting(containerEl)
+                        .setName('Custom AI judge prompt')
+                        .setDesc('Optional: Custom prompt for AI news evaluation (use {{NEWS_TEXT}} and {{TOPIC}} as placeholders)')
+                        .addTextArea(text => text
+                            .setPlaceholder('Leave empty to use default prompt...')
+                            .setValue(this.plugin.settings.aiJudgePrompt || '')
+                            .onChange(async (value) => {
+                                this.plugin.settings.aiJudgePrompt = value;
+                                await this.plugin.saveSettings();
+                            }));
+                }
+            } else if (this.plugin.settings.apiProvider === 'claude' || this.plugin.settings.apiProvider === 'openai') {
                 new Setting(containerEl)
                     .setName('Use AI news judgment')
                     .setDesc('Let AI evaluate and select the most relevant news items')
@@ -469,6 +647,27 @@ const LANGUAGE_TRANSLATIONS = {
 
 export default class DailyNewsPlugin extends Plugin {
     settings: DailyNewsSettings;
+    
+    // Shared custom fetch function to bypass CORS for AI SDK
+    private createCustomFetch() {
+        return async (url: string, options: any): Promise<Response> => {
+            console.log(`Custom fetch called for: ${url}`);
+            
+            const response = await requestUrl({
+                url: url,
+                method: options.method || 'GET',
+                headers: options.headers || {},
+                body: options.body
+            });
+
+            // Convert Obsidian's response to match fetch Response interface
+            return new Response(response.text, {
+                status: response.status,
+                statusText: response.status.toString(),
+                headers: response.headers || {}
+            }) as Response;
+        };
+    }
 
     async onload() {
         await this.loadSettings();
@@ -518,14 +717,20 @@ export default class DailyNewsPlugin extends Plugin {
         let queries: {[key: string]: string} = {};
         
         // Use AI to generate the primary query if enabled
-        if (this.settings.useAIForQueries && this.settings.geminiApiKey) {
-            try {
-                const aiQuery = await this.generateAISearchQuery(topic);
-                if (aiQuery) {
-                    queries.aiGenerated = aiQuery;
+        if (this.settings.useAIForQueries) {
+            const hasApiKey = (this.settings.apiProvider === 'claude' && this.settings.claudeApiKey) ||
+                             (this.settings.apiProvider === 'openai' && this.settings.openaiApiKey) ||
+                             (this.settings.apiProvider === 'google' && this.settings.geminiApiKey);
+            
+            if (hasApiKey) {
+                try {
+                    const aiQuery = await this.generateAISearchQuery(topic);
+                    if (aiQuery) {
+                        queries.aiGenerated = aiQuery;
+                    }
+                } catch (error) {
+                    console.error("Error generating AI query:", error);
                 }
-            } catch (error) {
-                console.error("Error generating AI query:", error);
             }
         }
         
@@ -546,14 +751,36 @@ export default class DailyNewsPlugin extends Plugin {
         let successfulQueries = 0;
         let failedQueries = 0;
         
-        // Fetch results for each query type in parallel
-        await Promise.all(Object.entries(queries).map(async ([queryType, queryString]) => {
+        // Choose fetching method based on provider
+        if (this.settings.apiProvider === 'google') {
+            // Use Google Search for Google provider
+            await Promise.all(Object.entries(queries).map(async ([queryType, queryString]) => {
+                try {
+                    const results = await this.fetchNewsFromGoogle(
+                        queryString, 
+                        dateRangeParam, 
+                        Math.ceil(maxResultsPerQuery)
+                    );
+                    
+                    // Add results while avoiding duplicates
+                    for (const item of results) {
+                        if (!allNews.some(existing => existing.link === item.link)) {
+                            allNews.push(item);
+                        }
+                    }
+                    
+                    if (results.length > 0) {
+                        successfulQueries++;
+                    }
+                } catch (error) {
+                    console.error(`Error fetching ${queryType} news:`, error);
+                    failedQueries++;
+                }
+            }));
+        } else {
+            // Use free news sources for Claude and OpenAI
             try {
-                const results = await this.fetchNewsFromGoogle(
-                    queryString, 
-                    dateRangeParam, 
-                    Math.ceil(maxResultsPerQuery)
-                );
+                const results = await this.fetchNewsFromFreeSources(topic);
                 
                 // Add results while avoiding duplicates
                 for (const item of results) {
@@ -563,17 +790,19 @@ export default class DailyNewsPlugin extends Plugin {
                 }
                 
                 if (results.length > 0) {
-                    successfulQueries++;
+                    successfulQueries = 1;
+                } else {
+                    failedQueries = 1;
                 }
             } catch (error) {
-                console.error(`Error fetching ${queryType} news:`, error);
-                failedQueries++;
+                console.error(`Error fetching news from free sources:`, error);
+                failedQueries = 1;
             }
-        }));
+        }
         
         // If all queries failed or no news items were found, throw an error
-        if (failedQueries === Object.keys(queries).length || (allNews.length === 0 && successfulQueries === 0)) {
-            throw new Error(`Failed to fetch news for ${topic}. All queries failed.`);
+        if (failedQueries > 0 && successfulQueries === 0) {
+            throw new Error(`Failed to fetch news for ${topic}. All sources failed.`);
         }
         
         // Use AI to judge and filter news items
@@ -597,21 +826,6 @@ export default class DailyNewsPlugin extends Plugin {
     // Update AI query generator to create broader queries
     async generateAISearchQuery(topic: string): Promise<string | null> {
         try {
-            if (!this.settings.geminiApiKey) {
-                return null;
-            }
-            
-            const genAI = new GoogleGenerativeAI(this.settings.geminiApiKey);
-            const model = genAI.getGenerativeModel({
-                model: "gemini-2.0-flash",
-                generationConfig: {
-                    temperature: 0.3, // Slightly increased temperature for more variety
-                    topK: 40,
-                    maxOutputTokens: 100
-                }
-            });
-            
-            // Modified prompt to create English search queries regardless of target language
             const prompt = `You are a search optimization expert. Create a Google search query for the topic "${topic}" that will find recent news articles.
 The generated query should:
 1. Be broad enough to catch a variety of news on this topic
@@ -623,8 +837,46 @@ The generated query should:
 
 Only return the search query string itself, without any explanations or additional text.`;
 
-            const result = await model.generateContent(prompt);
-            const query = result.response.text().trim();
+            let query: string;
+            
+            if (this.settings.apiProvider === 'claude' && this.settings.claudeApiKey) {
+                const anthropic = createAnthropic({
+                    apiKey: this.settings.claudeApiKey,
+                    fetch: this.createCustomFetch()
+                });
+                const { text } = await generateText({
+                    model: anthropic(this.settings.claudeModel),
+                    prompt: prompt,
+                    temperature: 0.3,
+                });
+                query = text.trim();
+            } else if (this.settings.apiProvider === 'openai' && this.settings.openaiApiKey) {
+                const openai = createOpenAI({
+                    apiKey: this.settings.openaiApiKey,
+                    fetch: this.createCustomFetch()
+                });
+                const { text } = await generateText({
+                    model: openai(this.settings.openaiModel),
+                    prompt: prompt,
+                    temperature: 0.3,
+                });
+                query = text.trim();
+            } else if (this.settings.apiProvider === 'google' && this.settings.geminiApiKey) {
+                const genAI = new GoogleGenerativeAI(this.settings.geminiApiKey);
+                const model = genAI.getGenerativeModel({
+                    model: "gemini-1.5-flash",
+                    generationConfig: {
+                        temperature: 0.3,
+                        topK: 40,
+                        maxOutputTokens: 100
+                    }
+                });
+                
+                const result = await model.generateContent(prompt);
+                query = result.response.text().trim();
+            } else {
+                return null;
+            }
             
             // Verify that the query is a short and meaningful string
             if (query && query.length > 0 && query.length < 200) {
@@ -638,26 +890,62 @@ Only return the search query string itself, without any explanations or addition
     }
 
     async judgeNewsWithAI(newsItems: NewsItem[], topic: string): Promise<NewsItem[]> {
-        if (!this.settings.useAIJudge || !this.settings.geminiApiKey) {
+        if (!this.settings.useAIJudge) {
             return newsItems; // If AI judgment is not used, return all news items
         }
 
-        try {
-            const genAI = new GoogleGenerativeAI(this.settings.geminiApiKey);
-            const model = genAI.getGenerativeModel({
-                model: "gemini-2.0-flash",
-                generationConfig: {
-                    temperature: 0.1, // Low temperature ensures consistent judgment
-                    topK: 40,
-                    maxOutputTokens: 2048
-                }
-            });
+        // Check if we have the required API key for the current provider
+        const hasApiKey = (this.settings.apiProvider === 'claude' && this.settings.claudeApiKey) ||
+                          (this.settings.apiProvider === 'openai' && this.settings.openaiApiKey) ||
+                          (this.settings.apiProvider === 'google' && this.settings.geminiApiKey);
+        
+        if (!hasApiKey) {
+            return newsItems.slice(0, this.settings.resultsPerTopic);
+        }
 
+        try {
             // Build judge prompt
             const judgePrompt = this.getAIJudgePrompt(newsItems, topic);
+            let response: string;
             
-            const result = await model.generateContent(judgePrompt);
-            const response = result.response.text();
+            if (this.settings.apiProvider === 'claude') {
+                const anthropic = createAnthropic({
+                    apiKey: this.settings.claudeApiKey,
+                    fetch: this.createCustomFetch()
+                });
+                const { text } = await generateText({
+                    model: anthropic(this.settings.claudeModel),
+                    prompt: judgePrompt,
+                    temperature: 0.1,
+                });
+                response = text;
+            } else if (this.settings.apiProvider === 'openai') {
+                const openai = createOpenAI({
+                    apiKey: this.settings.openaiApiKey,
+                    fetch: this.createCustomFetch()
+                });
+                const { text } = await generateText({
+                    model: openai(this.settings.openaiModel),
+                    prompt: judgePrompt,
+                    temperature: 0.1,
+                });
+                response = text;
+            } else if (this.settings.apiProvider === 'google') {
+                const genAI = new GoogleGenerativeAI(this.settings.geminiApiKey);
+                const model = genAI.getGenerativeModel({
+                    model: "gemini-1.5-flash",
+                    generationConfig: {
+                        temperature: 0.1,
+                        topK: 40,
+                        maxOutputTokens: 2048
+                    }
+                });
+                
+                const result = await model.generateContent(judgePrompt);
+                response = result.response.text();
+            } else {
+                return newsItems.slice(0, this.settings.resultsPerTopic);
+            }
             
             // Parse AI judgment results
             return this.parseAIJudgeResponse(response, newsItems);
@@ -800,6 +1088,246 @@ Only return the search query string itself, without any explanations or addition
         return `${topic} this week important`;
     }
 
+    private async fetchNewsFromFreeSources(topic: string): Promise<NewsItem[]> {
+        const allNews: NewsItem[] = [];
+        const maxResults = this.settings.maxSearchResults || 30;
+        
+        // List of free news sources and RSS feeds
+        const newsSources = [
+            // BBC News RSS feeds
+            {
+                name: 'BBC News',
+                baseUrl: 'https://feeds.bbci.co.uk/news',
+                feeds: ['rss.xml', 'technology/rss.xml', 'business/rss.xml', 'world/rss.xml']
+            },
+            // CNN RSS feeds
+            {
+                name: 'CNN',
+                baseUrl: 'https://rss.cnn.com/rss',
+                feeds: ['edition.rss', 'cnn_tech.rss', 'cnn_world.rss']
+            },
+            // Reuters RSS feeds (alternative URLs)
+            {
+                name: 'Reuters',
+                baseUrl: 'https://feeds.reuters.com',
+                feeds: ['/technology/rss', '/world/rss', '/business/rss']
+            },
+            // NPR RSS feeds
+            {
+                name: 'NPR',
+                baseUrl: 'https://feeds.npr.org',
+                feeds: ['/1001/rss.xml', '/1019/rss.xml', '/1003/rss.xml'] // All Stories, Technology, World
+            },
+            // Associated Press RSS feeds
+            {
+                name: 'Associated Press',
+                baseUrl: 'https://apnews.com',
+                feeds: ['/rss/technology', '/rss/world-news', '/rss/business']
+            }
+        ];
+        
+        // Try NewsAPI (free tier available) if we have enough quota
+        try {
+            const newsApiResults = await this.fetchFromNewsAPI(topic);
+            for (const item of newsApiResults) {
+                if (!allNews.some(existing => existing.link === item.link)) {
+                    allNews.push(item);
+                }
+            }
+        } catch (error) {
+            console.log('NewsAPI not available, using RSS feeds only');
+        }
+        
+        // Fetch from RSS feeds with improved error handling
+        const feedPromises: Promise<void>[] = [];
+        let activeFetches = 0;
+        const maxConcurrentFetches = 3;
+        
+        for (const source of newsSources) {
+            if (allNews.length >= maxResults) break;
+            
+            for (const feed of source.feeds) {
+                // Control concurrency to avoid overwhelming servers
+                while (activeFetches >= maxConcurrentFetches) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                
+                activeFetches++;
+                const feedPromise = (async () => {
+                    try {
+                        const feedUrl = `${source.baseUrl}/${feed}`.replace(/\/+/g, '/').replace('http:/', 'http://').replace('https:/', 'https://');
+                        const feedResults = await this.fetchFromRSSFeed(feedUrl, source.name, topic);
+                        
+                        for (const item of feedResults) {
+                            if (!allNews.some(existing => existing.link === item.link) && allNews.length < maxResults) {
+                                allNews.push(item);
+                            }
+                        }
+                        
+                    } catch (error) {
+                        console.log(`Failed to fetch from ${source.name} (${feed}):`, error.message);
+                    } finally {
+                        activeFetches--;
+                    }
+                })();
+                
+                feedPromises.push(feedPromise);
+                
+                // Small delay between requests
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+        }
+        
+        // Wait for all feed fetches to complete
+        await Promise.allSettled(feedPromises);
+        
+        // Filter items to match the topic better
+        const filteredNews = allNews.filter(item => 
+            this.matchesTopicKeywords(item, topic)
+        );
+        
+        // If we don't have enough topic-specific results, include some general news
+        let finalResults = filteredNews.slice(0, maxResults);
+        if (finalResults.length < 3 && allNews.length > 0) {
+            const remainingGeneral = allNews
+                .filter(item => !filteredNews.includes(item))
+                .slice(0, Math.max(0, 3 - finalResults.length));
+            finalResults = [...finalResults, ...remainingGeneral];
+        }
+        
+        return finalResults.slice(0, maxResults);
+    }
+    
+    private async fetchFromNewsAPI(topic: string): Promise<NewsItem[]> {
+        // This would require a free NewsAPI key, but we'll implement a basic version
+        // that uses the NewsAPI developer endpoint (limited but free)
+        const query = encodeURIComponent(topic);
+        const apiUrl = `https://newsapi.org/v2/everything?q=${query}&sortBy=publishedAt&pageSize=20&language=en`;
+        
+        // Note: This would need an API key in production
+        // For now, we'll throw an error to skip this source
+        throw new Error('NewsAPI requires API key');
+    }
+    
+    private async fetchFromRSSFeed(feedUrl: string, sourceName: string, topic: string): Promise<NewsItem[]> {
+        try {
+            // Add timeout to RSS feed requests using Promise.race
+            const timeoutPromise = new Promise<never>((_, reject) => 
+                setTimeout(() => reject(new Error('RSS feed request timed out')), 15000)
+            );
+            
+            const requestPromise = requestUrl({ 
+                url: feedUrl,
+                headers: {
+                    'User-Agent': 'ObsidianNewsPlugin/1.7.0'
+                }
+            });
+            
+            const response = await Promise.race([requestPromise, timeoutPromise]);
+            const newsItems: NewsItem[] = [];
+            
+            // Basic XML parsing for RSS feeds
+            const xmlContent = response.text;
+            
+            // Extract items using regex (improved approach for various RSS formats)
+            const itemRegex = /<(?:item|entry)[^>]*>([\s\S]*?)<\/(?:item|entry)>/gi;
+            const titleRegex = /<title[^>]*>(?:<!\[CDATA\[(.*?)\]\]>|(.*?))<\/title>/i;
+            const linkRegex = /<link[^>]*(?:\s+href=["'](.*?)["'])?[^>]*>(.*?)<\/link>|<link[^>]*href=["'](.*?)["'][^>]*\/?>|<link[^>]*>(.*?)<\/link>/i;
+            const descRegex = /<(?:description|summary|content)[^>]*>(?:<!\[CDATA\[(.*?)\]\]>|(.*?))<\/(?:description|summary|content)>/i;
+            const pubDateRegex = /<(?:pubDate|published|updated)[^>]*>(.*?)<\/(?:pubDate|published|updated)>/i;
+            
+            let match;
+            while ((match = itemRegex.exec(xmlContent)) !== null && newsItems.length < 10) {
+                const itemXml = match[1];
+                
+                const titleMatch = titleRegex.exec(itemXml);
+                const linkMatch = linkRegex.exec(itemXml);
+                const descMatch = descRegex.exec(itemXml);
+                const pubDateMatch = pubDateRegex.exec(itemXml);
+                
+                if (titleMatch && linkMatch) {
+                    const title = (titleMatch[1] || titleMatch[2] || '').trim();
+                    const link = (linkMatch[1] || linkMatch[2] || linkMatch[3] || linkMatch[4] || '').trim();
+                    const description = (descMatch ? (descMatch[1] || descMatch[2] || '') : '').trim();
+                    const publishedTime = pubDateMatch ? pubDateMatch[1].trim() : undefined;
+                    
+                    // Clean HTML tags from description
+                    const cleanDesc = description.replace(/<[^>]*>/g, '').trim();
+                    
+                    if (title && link && this.isRecentNews(publishedTime)) {
+                        newsItems.push({
+                            title: this.decodeHtml(title),
+                            link: link,
+                            snippet: this.decodeHtml(cleanDesc).substring(0, 300),
+                            publishedTime: publishedTime,
+                            source: sourceName
+                        });
+                    }
+                }
+            }
+            
+            return newsItems;
+            
+        } catch (error) {
+            console.error(`Error fetching RSS feed ${feedUrl}:`, error);
+            return [];
+        }
+    }
+    
+    private matchesTopicKeywords(item: NewsItem, topic: string): boolean {
+        const searchTerms = topic.toLowerCase().split(/[\s,]+/);
+        const searchText = `${item.title} ${item.snippet}`.toLowerCase();
+        
+        // Create broader keyword matching for specific topics
+        const expandedTerms = [...searchTerms];
+        
+        // Add related keywords for common topics
+        const topicKeywords = {
+            'technology': ['tech', 'digital', 'software', 'hardware', 'ai', 'artificial intelligence', 'computer', 'internet'],
+            'blockchain': ['crypto', 'cryptocurrency', 'bitcoin', 'ethereum', 'defi', 'nft', 'web3', 'digital currency'],
+            'world': ['international', 'global', 'foreign', 'country', 'nation', 'politics', 'government'],
+            'business': ['economy', 'finance', 'market', 'company', 'corporate', 'industry', 'trade'],
+            'science': ['research', 'study', 'scientific', 'discovery', 'innovation', 'medical', 'health']
+        };
+        
+        // Add related keywords based on topic
+        for (const [key, keywords] of Object.entries(topicKeywords)) {
+            if (topic.toLowerCase().includes(key)) {
+                expandedTerms.push(...keywords);
+            }
+        }
+        
+        // Check if any search term or related keyword is found
+        return expandedTerms.some(term => 
+            term.length > 2 && searchText.includes(term)
+        );
+    }
+    
+    private isRecentNews(publishedTime?: string): boolean {
+        if (!publishedTime) return true; // If no date, assume recent
+        
+        try {
+            const pubDate = new Date(publishedTime);
+            const now = new Date();
+            const daysDiff = (now.getTime() - pubDate.getTime()) / (1000 * 60 * 60 * 24);
+            
+            // Consider news from the last 7 days as recent
+            return daysDiff <= 7;
+        } catch {
+            return true; // If date parsing fails, assume recent
+        }
+    }
+    
+    private decodeHtml(html: string): string {
+        return html
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/&apos;/g, "'");
+    }
+
     private async fetchNewsFromGoogle(
         query: string, 
         dateRestrict: string, 
@@ -920,60 +1448,244 @@ Only return the search query string itself, without any explanations or addition
         const prompt = this.getAIPrompt(enhancedNewsText, topic, this.settings.outputFormat);
 
         try {
-            // Check if API key is available
-            if (!this.settings.geminiApiKey) {
-                throw new Error('Missing Gemini API key');
+            if (this.settings.apiProvider === 'claude') {
+                return await this.generateSummaryWithClaude(prompt);
+            } else if (this.settings.apiProvider === 'openai') {
+                return await this.generateSummaryWithOpenAI(prompt);
+            } else if (this.settings.apiProvider === 'google') {
+                return await this.generateSummaryWithGemini(prompt, topic);
+            } else {
+                throw new Error('Unsupported API provider for summarization');
             }
-            
-            // Initialize the Gemini API
-            const genAI = new GoogleGenerativeAI(this.settings.geminiApiKey);
-            
-            // Use the model "gemini-2.0-flash" for better performance
-            const modelName = "gemini-2.0-flash";
-                
-            // console.log(`Using model ${modelName} for summarization`);
-            
-            const model = genAI.getGenerativeModel({ 
-                model: modelName,
-                generationConfig: {
-                    temperature: 0.2, // Lower temperature for more factual output
-                    topP: 0.95,
-                    topK: 40,
-                    maxOutputTokens: 4096
-                }
-            });
-            
-            // Set a timeout for the API call
-            const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('AI summary timed out')), 30000)
-            );
-            
-            // Run the content generation with timeout
-            const resultPromise = model.generateContent(prompt);
-            const result = await Promise.race([resultPromise, timeoutPromise]) as any;
-            
-            // Validate result structure
-            if (!result || !result.response) {
-                throw new Error('Invalid AI response structure');
-            }
-            
-            // Return the summary text
-            return result.response.text();
         } catch (error) {
             console.error('Failed to generate summary:', error);
             
-            // This error message will help detect failures in the generateDailyNews method
-            return `Error generating summary for ${topic}. ${error.message || 'Unknown error'}\n\nCheck the developer console for more information.`;
+            // Provide fallback content with the actual news items when AI summarization fails
+            const fallbackContent = this.createFallbackSummary(newsItems, topic);
+            
+            return `**Note: AI summarization failed for ${topic}**\n\n` +
+                   `Error: ${error.message || 'Unknown error'}\n\n` +
+                   `**Raw news items found:**\n\n${fallbackContent}`;
         }
+    }
+
+    async generateSummaryWithClaude(prompt: string, retryCount: number = 0): Promise<string> {
+        if (!this.settings.claudeApiKey) {
+            throw new Error('Missing Claude API key');
+        }
+
+        const maxRetries = 3;
+        const baseDelay = 1000; // 1 second
+
+        try {
+            console.log(`Using AI SDK for Claude with custom fetch - Model: ${this.settings.claudeModel}`);
+            console.log(`API key format check: ${this.settings.claudeApiKey?.startsWith('sk-ant-') ? 'Valid format' : 'Invalid format'}`);
+            console.log(`Prompt length: ${prompt.length} characters`);
+            
+            const anthropic = createAnthropic({
+                apiKey: this.settings.claudeApiKey,
+                fetch: this.createCustomFetch()
+            });
+            
+            const { text } = await generateText({
+                model: anthropic(this.settings.claudeModel),
+                prompt: prompt,
+                temperature: 0.2,
+            });
+
+            console.log(`Claude AI SDK call successful, response length: ${text?.length || 0} characters`);
+            return text;
+        } catch (error) {
+            console.error(`Claude AI SDK error (attempt ${retryCount + 1}/${maxRetries + 1}):`, error);
+            console.error(`Error details:`, {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+                cause: error.cause
+            });
+            
+            // Check if we should retry
+            const shouldRetry = retryCount < maxRetries && (
+                error.message.includes('fetch') ||
+                error.message.includes('timeout') ||
+                error.message.includes('ECONNRESET') ||
+                error.message.includes('ENOTFOUND') ||
+                error.message.includes('network') ||
+                error.status === 500 ||
+                error.status === 502 ||
+                error.status === 503 ||
+                error.status === 504
+            );
+
+            if (shouldRetry) {
+                const delay = baseDelay * Math.pow(2, retryCount); // Exponential backoff
+                console.log(`Retrying Claude AI SDK call in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return this.generateSummaryWithClaude(prompt, retryCount + 1);
+            }
+            
+            // Provide more specific error messages with evidence
+            let errorMessage = `AI SDK Error: ${error.message}`;
+            const diagnosticInfo = this.gatherAISDKDiagnostics(error);
+            
+            if (error.message.includes('401') || error.message.includes('unauthorized')) {
+                errorMessage = 'Invalid Claude API key or unauthorized access';
+            } else if (error.message.includes('429') || error.message.includes('rate limit')) {
+                errorMessage = 'Claude API rate limit exceeded - please wait and try again';
+            } else if (error.message.includes('timeout') || error.message.includes('ETIMEDOUT')) {
+                errorMessage = 'Claude API request timed out after multiple retries - network connection issue';
+            } else if (error.message.includes('fetch') || error.message.includes('network')) {
+                errorMessage = `Network error with AI SDK - ${diagnosticInfo}`;
+            } else if (error.message.includes('ENOTFOUND')) {
+                errorMessage = 'DNS lookup failed for Claude API - check internet connection and DNS settings';
+            }
+            
+            throw new Error(`Claude API error: ${errorMessage}`);
+        }
+    }
+
+    async generateSummaryWithOpenAI(prompt: string, retryCount: number = 0): Promise<string> {
+        if (!this.settings.openaiApiKey) {
+            throw new Error('Missing OpenAI API key');
+        }
+
+        const maxRetries = 3;
+        const baseDelay = 1000; // 1 second
+
+        try {
+            console.log(`Using AI SDK for OpenAI with custom fetch - Model: ${this.settings.openaiModel}`);
+            console.log(`API key format check: ${this.settings.openaiApiKey?.startsWith('sk-') ? 'Valid format' : 'Invalid format'}`);
+            console.log(`Prompt length: ${prompt.length} characters`);
+            
+            const openai = createOpenAI({
+                apiKey: this.settings.openaiApiKey,
+                fetch: this.createCustomFetch()
+            });
+            
+            const { text } = await generateText({
+                model: openai(this.settings.openaiModel),
+                prompt: prompt,
+                temperature: 0.2,
+            });
+
+            console.log(`OpenAI AI SDK call successful, response length: ${text?.length || 0} characters`);
+            return text;
+        } catch (error) {
+            console.error(`OpenAI AI SDK error (attempt ${retryCount + 1}/${maxRetries + 1}):`, error);
+            console.error(`Error details:`, {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+                cause: error.cause
+            });
+            
+            // Check if we should retry
+            const shouldRetry = retryCount < maxRetries && (
+                error.message.includes('fetch') ||
+                error.message.includes('timeout') ||
+                error.message.includes('ECONNRESET') ||
+                error.message.includes('ENOTFOUND') ||
+                error.message.includes('network') ||
+                error.status === 500 ||
+                error.status === 502 ||
+                error.status === 503 ||
+                error.status === 504
+            );
+
+            if (shouldRetry) {
+                const delay = baseDelay * Math.pow(2, retryCount); // Exponential backoff
+                console.log(`Retrying OpenAI AI SDK call in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return this.generateSummaryWithOpenAI(prompt, retryCount + 1);
+            }
+            
+            // Provide more specific error messages with evidence
+            let errorMessage = `AI SDK Error: ${error.message}`;
+            const diagnosticInfo = this.gatherAISDKDiagnostics(error);
+            
+            if (error.message.includes('401') || error.message.includes('unauthorized')) {
+                errorMessage = 'Invalid OpenAI API key or unauthorized access';
+            } else if (error.message.includes('429') || error.message.includes('rate limit')) {
+                errorMessage = 'OpenAI API rate limit exceeded - please wait and try again';
+            } else if (error.message.includes('timeout') || error.message.includes('ETIMEDOUT')) {
+                errorMessage = 'OpenAI API request timed out after multiple retries - network connection issue';
+            } else if (error.message.includes('fetch') || error.message.includes('network')) {
+                errorMessage = `Network error with AI SDK - ${diagnosticInfo}`;
+            } else if (error.message.includes('ENOTFOUND')) {
+                errorMessage = 'DNS lookup failed for OpenAI API - check internet connection and DNS settings';
+            }
+            
+            throw new Error(`OpenAI API error: ${errorMessage}`);
+        }
+    }
+
+    async generateSummaryWithGemini(prompt: string, topic: string): Promise<string> {
+        // Check if API key is available
+        if (!this.settings.geminiApiKey) {
+            throw new Error('Missing Gemini API key');
+        }
+        
+        // Initialize the Gemini API
+        const genAI = new GoogleGenerativeAI(this.settings.geminiApiKey);
+        
+        // Use the model "gemini-1.5-flash" for better performance
+        const modelName = "gemini-1.5-flash";
+            
+        // console.log(`Using model ${modelName} for summarization`);
+        
+        const model = genAI.getGenerativeModel({ 
+            model: modelName,
+            generationConfig: {
+                temperature: 0.2, // Lower temperature for more factual output
+                topP: 0.95,
+                topK: 40,
+                maxOutputTokens: 4096
+            }
+        });
+        
+        // Set a timeout for the API call
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('AI summary timed out')), 30000)
+        );
+        
+        // Run the content generation with timeout
+        const resultPromise = model.generateContent(prompt);
+        const result = await Promise.race([resultPromise, timeoutPromise]) as any;
+        
+        // Validate result structure
+        if (!result || !result.response) {
+            throw new Error('Invalid AI response structure');
+        }
+        
+        // Return the summary text
+        return result.response.text();
     }
 
     // Fallback summary when AI fails
     private createFallbackSummary(newsItems: NewsItem[], topic: string): string {
-        return `**Summary for ${topic}**\n\n${
-            newsItems.slice(0, 5).map(item => 
-                `- **${item.title}** - ${item.snippet?.substring(0, 150)}... [${item.source || new URL(item.link).hostname}](${item.link})`
-            ).join('\n\n')
-        }`;
+        if (!newsItems.length) {
+            return `No news items found for ${topic}.`;
+        }
+
+        return newsItems.slice(0, Math.min(8, this.settings.resultsPerTopic)).map((item, index) => {
+            try {
+                const domain = new URL(item.link).hostname.replace('www.', '');
+                const source = item.source || domain;
+                const snippet = item.snippet?.substring(0, 200) || 'No description available';
+                const publishedTime = item.publishedTime ? ` (${item.publishedTime})` : '';
+                
+                return `### ${index + 1}. ${item.title}\n\n` +
+                       `**Source:** ${source}${publishedTime}\n\n` +
+                       `**Summary:** ${snippet}${snippet.length >= 200 ? '...' : ''}\n\n` +
+                       `**Link:** [Read full article](${item.link})\n\n---`;
+            } catch (error) {
+                // Handle URL parsing errors
+                return `### ${index + 1}. ${item.title}\n\n` +
+                       `**Source:** ${item.source || 'Unknown'}\n\n` +
+                       `**Summary:** ${item.snippet?.substring(0, 200) || 'No description available'}\n\n` +
+                       `**Link:** [Read full article](${item.link})\n\n---`;
+            }
+        }).join('\n\n');
     }
 
     private getAIPrompt(newsText: string, topic: string, format: 'detailed' | 'concise'): string {
@@ -1112,6 +1824,107 @@ Format your summary as bullet points with concrete facts:
         }
     }
 
+    // Method to gather AI SDK diagnostic information
+    private gatherAISDKDiagnostics(error: any): string {
+        const diagnostics = [];
+        
+        // Check error properties
+        if (error.name) diagnostics.push(`Error type: ${error.name}`);
+        if (error.code) diagnostics.push(`Error code: ${error.code}`);
+        if (error.cause) diagnostics.push(`Cause: ${error.cause}`);
+        
+        // Check if it's a network-related error
+        if (error.message.includes('fetch')) {
+            diagnostics.push('Fetch API failure - possibly network connectivity issue in Obsidian environment');
+        }
+        
+        // Check stack trace for more details
+        if (error.stack && error.stack.includes('ai-sdk')) {
+            diagnostics.push('Error originated from AI SDK');
+        }
+        
+        return diagnostics.join(', ');
+    }
+
+    // Create diagnostic note when AI SDK consistently fails
+    async createAISDKDiagnosticNote(): Promise<void> {
+        const date = new Date().toISOString().split('T')[0];
+        const fileName = `AI-SDK-Diagnostics-${date}.md`;
+        const archiveFolder = this.normalizePath(this.settings.archiveFolder);
+        const filePath = `${archiveFolder}/${fileName}`;
+
+        // Check if diagnostic note already exists today
+        if (await this.app.vault.adapter.exists(filePath)) {
+            return;
+        }
+
+        // Gather system information
+        const userAgent = navigator.userAgent;
+        const obsidianVersion = (this.app as any).appVersion || 'Unknown';
+        const nodeVersion = process?.version || 'Unknown';
+        
+        const diagnosticContent = `# AI SDK Diagnostic Report
+        
+**Date:** ${new Date().toLocaleString()}
+**Plugin Version:** 1.7.0
+
+## Issue Description
+The AI SDK by Vercel is failing to make API calls from within the Obsidian environment.
+
+## Evidence
+- **RSS Feed Retrieval:** ✅ Working (using requestUrl)
+- **Direct API Connectivity:** ✅ Working (tested with curl)
+- **AI SDK API Calls:** ❌ Failing
+
+## Technical Details
+
+### Environment
+- **Obsidian Version:** ${obsidianVersion}
+- **User Agent:** ${userAgent}
+- **Node.js Version:** ${nodeVersion}
+- **Platform:** ${process?.platform || navigator.platform}
+
+### AI SDK Versions
+- **@ai-sdk/anthropic:** 2.0.8
+- **@ai-sdk/openai:** 2.0.22  
+- **ai:** 5.0.26
+
+### Network Tests
+- **api.anthropic.com:** Reachable via curl
+- **api.openai.com:** Reachable via curl
+- **RSS feeds (BBC, CNN, Reuters):** Working via requestUrl
+
+## Error Patterns
+Both Claude and OpenAI AI SDK calls fail with network-related errors, while:
+1. RSS feeds work perfectly using Obsidian's requestUrl
+2. Direct curl commands to the same APIs succeed
+3. API keys are valid (correct format)
+
+## Hypothesis
+The AI SDK by Vercel may be using networking libraries or methods that are not compatible with Obsidian's sandboxed environment, while Obsidian's native requestUrl function works correctly.
+
+## Recommended Solutions
+1. **Switch to Google/Gemini provider** (uses different SDK)
+2. **Use Sonar by Perplexity** (different API approach)  
+3. **Wait for AI SDK compatibility updates** with Obsidian environment
+
+## Console Logs
+Check Obsidian's Developer Console (Ctrl+Shift+I) for detailed error messages when attempting to use Claude or OpenAI providers.
+`;
+
+        try {
+            // Create folder if it doesn't exist
+            if (!(await this.app.vault.adapter.exists(archiveFolder))) {
+                await this.app.vault.createFolder(archiveFolder);
+            }
+            
+            await this.app.vault.create(filePath, diagnosticContent);
+            new Notice(`Created AI SDK diagnostic note: ${fileName}`, 5000);
+        } catch (error) {
+            console.error('Failed to create diagnostic note:', error);
+        }
+    }
+
     private validateApiConfig(): boolean {
         if (this.settings.apiProvider === 'google') {
             // Check Google API settings
@@ -1119,14 +1932,107 @@ Format your summary as bullet points with concrete facts:
                 new Notice('Missing Google API configuration. Please check settings.', 5000);
                 return false;
             }
-        } else {
+        } else if (this.settings.apiProvider === 'sonar') {
             // Check Sonar API settings
             if (!this.settings.perplexityApiKey) {
                 new Notice('Missing Sonar API key. Please add your Perplexity API key in settings.', 5000);
                 return false;
             }
+        } else if (this.settings.apiProvider === 'claude') {
+            // Check Claude API settings (no Google API required)
+            if (!this.settings.claudeApiKey) {
+                new Notice('Missing Claude API key. Please add your Anthropic API key in settings.', 5000);
+                return false;
+            }
+            // Validate Claude API key format
+            if (!this.settings.claudeApiKey.startsWith('sk-ant-')) {
+                new Notice('Invalid Claude API key format. Keys should start with "sk-ant-"', 5000);
+                return false;
+            }
+            // Validate Claude model name
+            if (!this.settings.claudeModel) {
+                new Notice('Missing Claude model configuration. Please specify a model name.', 5000);
+                return false;
+            }
+        } else if (this.settings.apiProvider === 'openai') {
+            // Check OpenAI API settings (no Google API required)
+            if (!this.settings.openaiApiKey) {
+                new Notice('Missing OpenAI API key. Please add your OpenAI API key in settings.', 5000);
+                return false;
+            }
         }
         return true;
+    }
+
+    // Add a method to test API connectivity
+    async testClaudeConnection(): Promise<boolean> {
+        if (!this.settings.claudeApiKey) {
+            return false;
+        }
+
+        try {
+            console.log('Testing Claude API connection with AI SDK and custom fetch...');
+            
+            const anthropic = createAnthropic({
+                apiKey: this.settings.claudeApiKey,
+                fetch: this.createCustomFetch()
+            });
+            
+            const { text } = await generateText({
+                model: anthropic(this.settings.claudeModel),
+                prompt: 'Say "API test successful" in exactly those words.',
+                temperature: 0.1,
+            });
+
+            const success = text.includes('API test successful');
+            console.log(`Claude API test result: ${success ? 'SUCCESS' : 'FAILED'}`);
+            console.log(`Test response: "${text}"`);
+            return success;
+        } catch (error) {
+            console.error('Claude API connection test failed with AI SDK:', error);
+            console.error(`Error details:`, {
+                name: error.name,
+                message: error.message,
+                stack: error.stack?.substring(0, 500),
+                cause: error.cause
+            });
+            return false;
+        }
+    }
+
+    async testOpenAIConnection(): Promise<boolean> {
+        if (!this.settings.openaiApiKey) {
+            return false;
+        }
+
+        try {
+            console.log('Testing OpenAI API connection with AI SDK and custom fetch...');
+            
+            const openai = createOpenAI({
+                apiKey: this.settings.openaiApiKey,
+                fetch: this.createCustomFetch()
+            });
+            
+            const { text } = await generateText({
+                model: openai(this.settings.openaiModel),
+                prompt: 'Say "API test successful" in exactly those words.',
+                temperature: 0.1,
+            });
+
+            const success = text.includes('API test successful');
+            console.log(`OpenAI API test result: ${success ? 'SUCCESS' : 'FAILED'}`);
+            console.log(`Test response: "${text}"`);
+            return success;
+        } catch (error) {
+            console.error('OpenAI API connection test failed with AI SDK:', error);
+            console.error(`Error details:`, {
+                name: error.name,
+                message: error.message,
+                stack: error.stack?.substring(0, 500),
+                cause: error.cause
+            });
+            return false;
+        }
     }
 
     async generateDailyNews() {
@@ -1142,7 +2048,7 @@ Format your summary as bullet points with concrete facts:
         }
         
         // If language doesn't have translations, warn but continue with English
-        if (!LANGUAGE_TRANSLATIONS[this.settings.language]) {
+        if (!(LANGUAGE_TRANSLATIONS as any)[this.settings.language]) {
             console.warn(`No translations available for language code "${this.settings.language}". Using English as fallback for UI elements.`);
             // Optional: show notice to user
             new Notice(`No translations available for "${this.settings.language}". UI will show in English, but content will be in the selected language.`, 4000);
@@ -1184,6 +2090,7 @@ Format your summary as bullet points with concrete facts:
             };
             
             const topicStatuses: TopicStatus[] = [];
+            let aiSdkFailureCount = 0; // Track AI SDK failures
             
             // Process each topic
             for (const topic of this.settings.topics) {
@@ -1200,24 +2107,23 @@ Format your summary as bullet points with concrete facts:
                     
                     new Notice(`Fetching news for ${topic}...`);
 
-                    if (this.settings.apiProvider === 'google') {
+                    if (this.settings.apiProvider === 'google' || this.settings.apiProvider === 'claude' || this.settings.apiProvider === 'openai') {
                         try {
-                            // Step 1: News Retrieval
+                            // Step 1: News Retrieval (same for all these providers)
                             const newsItems = await this.fetchNews(topic);
                             topicStatus.retrievalSuccess = true;
                             topicStatus.newsCount = newsItems.length;
                             
                             if (newsItems.length) {
                                 try {
-                                    // Step 2: News Summarization
+                                    // Step 2: News Summarization (provider-specific)
                                     new Notice(`Summarizing ${newsItems.length} news items for ${topic}...`);
                                     const summary = await this.generateSummary(newsItems, topic);
                                     
                                     // Check if summary contains error messages
-                                    if (summary.includes('Error generating summary') || summary.includes('Failed to generate')) {
+                                    if (summary.includes('AI summarization failed') || summary.includes('Error generating summary') || summary.includes('Failed to generate')) {
                                         topicStatus.error = `Summarization failed for topic "${topic}"`;
-                                        content += `**News retrieval successful, but summarization failed for ${topic}.**\n\n`;
-                                        content += `${summary}\n`;
+                                        content += summary + '\n'; // Summary already includes error context and fallback content
                                     } else {
                                         topicStatus.summarizationSuccess = true;
                                         content += summary + '\n';
@@ -1227,6 +2133,13 @@ Format your summary as bullet points with concrete facts:
                                     topicStatus.error = `Summarization error: ${summarizationError.message}`;
                                     content += `**News retrieval successful, but summarization failed for ${topic}.**\n\n`;
                                     content += `Error details: ${summarizationError.message}\n\n`;
+                                    
+                                    // Track AI SDK failures
+                                    if (summarizationError.message.includes('AI SDK') || 
+                                        summarizationError.message.includes('fetch') ||
+                                        summarizationError.message.includes('network')) {
+                                        aiSdkFailureCount++;
+                                    }
                                 }
                             } else {
                                 content += `${this.getTranslation('noRecentNews')} ${topic}.\n\n`;
@@ -1276,8 +2189,7 @@ Format your summary as bullet points with concrete facts:
                 
             const atLeastOneNewsItem = topicStatuses.some(status => status.newsCount > 0);
             
-            const allTopicsFailed = topicStatuses.every(status => 
-                !status.retrievalSuccess || !status.summarizationSuccess);
+            const allRetrievalsFailed = topicStatuses.every(status => !status.retrievalSuccess);
                 
             // Generate error analysis for logging
             const errorSummary = topicStatuses
@@ -1285,17 +2197,23 @@ Format your summary as bullet points with concrete facts:
                 .map(status => `${status.topic}: ${status.error}`)
                 .join('\n');
                 
-            // Decide whether to create the note
-            if (allTopicsFailed || !atLeastOneSuccessfulTopic) {
-                const errorMessage = atLeastOneNewsItem 
-                    ? 'News was retrieved for some topics, but summarization failed for all of them.' 
-                    : 'Failed to retrieve news for any topics.';
+            // Decide whether to create the note - only skip if all news retrievals failed
+            if (allRetrievalsFailed) {
+                const errorMessage = 'Failed to retrieve news for any topics.';
                 
                 if (this.settings.enableNotifications) {
                     new Notice(`${errorMessage} No note was created.`, 5000);
                 }
                 console.error(`${errorMessage} No note was created.\nError details:\n${errorSummary}`);
                 return null;
+            }
+            
+            // If we have news but summarization failed, still create the note with error information
+            if (atLeastOneNewsItem && !atLeastOneSuccessfulTopic) {
+                if (this.settings.enableNotifications) {
+                    new Notice('News retrieved but summarization failed. Note created with error details.', 5000);
+                }
+                console.warn('News retrieved but summarization failed for all topics. Creating note with error information.');
             }
 
             // Create folder if it doesn't exist
@@ -1323,10 +2241,36 @@ Format your summary as bullet points with concrete facts:
                 }
             }
 
-            await this.app.vault.create(fileName, content);
+            // Check if file already exists and handle accordingly
+            if (await this.app.vault.adapter.exists(fileName)) {
+                // File exists, update it instead
+                const existingFile = this.app.vault.getAbstractFileByPath(fileName);
+                if (existingFile instanceof TFile) {
+                    await this.app.vault.modify(existingFile, content);
+                    if (this.settings.enableNotifications) {
+                        new Notice('Daily news updated successfully', 3000);
+                    }
+                } else {
+                    // File path exists but is not a file, create with timestamp
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                    const newFileName = fileName.replace('.md', `-${timestamp}.md`);
+                    await this.app.vault.create(newFileName, content);
+                    if (this.settings.enableNotifications) {
+                        new Notice('Daily news generated successfully', 3000);
+                    }
+                    return newFileName;
+                }
+            } else {
+                // File doesn't exist, create it
+                await this.app.vault.create(fileName, content);
+                if (this.settings.enableNotifications) {
+                    new Notice('Daily news generated successfully', 3000);
+                }
+            }
             
-            if (this.settings.enableNotifications) {
-                new Notice('Daily news generated successfully', 3000);
+            // Create diagnostic note if AI SDK consistently fails
+            if (aiSdkFailureCount > 0 && (this.settings.apiProvider === 'claude' || this.settings.apiProvider === 'openai')) {
+                await this.createAISDKDiagnosticNote();
             }
             
             // console.log(`Created news file at: ${fileName}`);
@@ -1427,9 +2371,9 @@ Format your summary as bullet points with concrete facts:
     // Helper method to get language-specific translations
     private getTranslation(key: string): string {
         // Get the language-specific translations or default to English
-        const translations = LANGUAGE_TRANSLATIONS[this.settings.language] || LANGUAGE_TRANSLATIONS['en'];
+        const translations = (LANGUAGE_TRANSLATIONS as any)[this.settings.language] || LANGUAGE_TRANSLATIONS['en'];
         
         // Return the translation for the key or the key itself if no translation exists
-        return translations[key] || LANGUAGE_TRANSLATIONS['en'][key] || key;
+        return (translations as any)[key] || (LANGUAGE_TRANSLATIONS['en'] as any)[key] || key;
     }
 }
