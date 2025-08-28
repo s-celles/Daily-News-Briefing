@@ -195,6 +195,9 @@ Contributions are welcome! Please:
 2. Create a feature branch
 3. Submit a pull request
 
+### Contributors
+- @[s-celles](https://github.com/s-celles): Thank you for refactoring the project and contributed many valuable features.
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
