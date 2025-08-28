@@ -130,7 +130,7 @@ export default class DailyNewsPlugin extends Plugin {
                         const summary = await this.newsProvider.fetchAndSummarizeNews(topic);
                         
                         // Check if summary contains error messages
-                        if (summary.includes('Error') || summary.includes('error') || summary.includes('failed')) {
+                        if (summary.includes('Error') || summary.includes('error')) {
                             topicStatus.error = `${this.newsProvider.getProviderName()} error for topic "${topic}"`;
                             content += `**Error processing ${topic} with ${this.newsProvider.getProviderName()}.**\n\n`;
                             content += `${summary}\n`;

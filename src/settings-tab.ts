@@ -218,8 +218,11 @@ export class DailyNewsSettingTab extends PluginSettingTab {
         if (this.showAdvanced) {
             containerEl.createEl('h2', {text: 'Advanced Configuration'});
 
-            // Add AI Query Generation setting in advanced section
-            new Setting(containerEl)
+            // Additional advanced settings for API-specific settings
+            if (this.plugin.settings.apiProvider === 'google') {
+
+                // Add AI Query Generation setting in Google
+                new Setting(containerEl)
                 .setName('Use AI for search queries')
                 .setDesc('Use AI to generate optimized search queries (uses Gemini API)')
                 .addToggle(toggle => toggle
@@ -229,8 +232,6 @@ export class DailyNewsSettingTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     }));
 
-            // Additional advanced settings for API-specific settings
-            if (this.plugin.settings.apiProvider === 'google') {
                 new Setting(containerEl)
                     .setName('Search date range')
                     .setDesc('How far back to search (d1 = 1 day, d2 = 2 days, w1 = 1 week)')
