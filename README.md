@@ -210,7 +210,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Changelog
 
-### 1.7.1
+### 1.7.2
 - Fix metadata generation error
 
 ### 1.7.1
