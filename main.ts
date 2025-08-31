@@ -195,12 +195,6 @@ export default class DailyNewsPlugin extends Plugin {
                 content += ContentUtils.buildProcessingStatus(topicStatuses, this.settings.language);
             }
 
-            await this.app.vault.create(fileName, content);
-            
-            if (this.settings.enableNotifications) {
-                new Notice('Daily news generated successfully', 3000);
-            }
-
             // Generate metadata if enabled
             if (this.settings.enableMetadata) {
                 const metadata = MetadataUtils.generateMetadata(
@@ -208,6 +202,12 @@ export default class DailyNewsPlugin extends Plugin {
                     processingStartTime,
                 );
                 content = MetadataUtils.formatMetadataAsYAML(metadata) + content;
+            }
+
+            await this.app.vault.create(fileName, content);
+            
+            if (this.settings.enableNotifications) {
+                new Notice('Daily news generated successfully', 3000);
             }
             
             return fileName;
