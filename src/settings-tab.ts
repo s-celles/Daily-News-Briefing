@@ -211,6 +211,126 @@ export class DailyNewsSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
+        // Metadata Configuration section
+        containerEl.createEl('h2', {text: 'Metadata Configuration'});
+
+        new Setting(containerEl)
+            .setName('Enable metadata')
+            .setDesc('Add YAML frontmatter with metadata to generated news files')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.enableMetadata)
+                .onChange(async (value) => {
+                    this.plugin.settings.enableMetadata = value;
+                    await this.plugin.saveSettings();
+                    this.display(); // Refresh to show/hide metadata options
+                }));
+        
+        containerEl.createEl('p', {text: 'Configure which metadata to include in the YAML frontmatter of generated news files.'});
+
+        if (this.plugin.settings.enableMetadata) {
+            // Date metadata
+            new Setting(containerEl)
+                .setName('Include date')
+                .setDesc('Date when the news was generated (YYYY-MM-DD)')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeDate)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeDate = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            // Time metadata
+            new Setting(containerEl)
+                .setName('Include time')
+                .setDesc('Time when the news was generated')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeTime)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeTime = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            // Topics metadata
+            new Setting(containerEl)
+                .setName('Include topics')
+                .setDesc('List of topics covered in this briefing')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeTopics)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeTopics = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            // Tags metadata
+            new Setting(containerEl)
+                .setName('Include tags')
+                .setDesc('Auto-generated tags based on topics and settings')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeTags)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeTags = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            // Language metadata
+            new Setting(containerEl)
+                .setName('Include language')
+                .setDesc('Language code used for content generation')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeLanguage)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeLanguage = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            // API Provider metadata
+            new Setting(containerEl)
+                .setName('Include API provider')
+                .setDesc('Which API provider was used')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeApiProvider)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeApiProvider = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            // Processing time metadata
+            new Setting(containerEl)
+                .setName('Include processing time')
+                .setDesc('Time taken to generate the news')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeProcessingTime)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeProcessingTime = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            // Source metadata
+            new Setting(containerEl)
+                .setName('Include source')
+                .setDesc('Data source information')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeSource)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeSource = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            // Output format metadata
+            new Setting(containerEl)
+                .setName('Include output format')
+                .setDesc('Format used for the news content (detailed/concise)')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeOutputFormat)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeOutputFormat = value;
+                        await this.plugin.saveSettings();
+                    }));
+        }
+
+        // Advanced Configuration section
+        containerEl.createEl('h2', {text: 'Advanced Configuration'});
+
         // Advanced toggle
         new Setting(containerEl)
             .setName('Show advanced configuration')
@@ -223,7 +343,6 @@ export class DailyNewsSettingTab extends PluginSettingTab {
 
         // Advanced Settings
         if (this.showAdvanced) {
-            containerEl.createEl('h2', {text: 'Advanced Configuration'});
 
             // Additional advanced settings for API-specific settings
             if (this.plugin.settings.apiProvider === 'google') {

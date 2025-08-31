@@ -27,6 +27,18 @@ export interface DailyNewsSettings {
     enableNotifications: boolean;
     enableAnalysisContext: boolean; // New: Enable or disable "Analysis & Context" feature
     
+    // Metadata settings
+    enableMetadata: boolean;
+    includeDate: boolean;
+    includeTime: boolean;
+    includeTopics: boolean;
+    includeTags: boolean;
+    includeLanguage: boolean;
+    includeApiProvider: boolean;
+    includeProcessingTime: boolean;
+    includeSource: boolean;
+    includeOutputFormat: boolean;
+    
     // Advanced settings
     dateRange: string;
     useCustomPrompt: boolean;
@@ -64,6 +76,18 @@ export const DEFAULT_SETTINGS: DailyNewsSettings = {
     outputFormat: 'detailed',
     enableNotifications: true,
     enableAnalysisContext: true, // Enable "Analysis & Context" feature by default
+    
+    // Metadata settings
+    enableMetadata: false, // Disabled by default to maintain backward compatibility
+    includeDate: true,
+    includeTime: true,
+    includeTopics: true,
+    includeTags: true,
+    includeLanguage: false,
+    includeApiProvider: false,
+    includeProcessingTime: false,
+    includeSource: false,
+    includeOutputFormat: false,
     
     // Advanced settings
     dateRange: 'd3', // Changed from d2 to d3 for broader date range
@@ -109,3 +133,15 @@ export type TopicStatus = {
     newsCount: number;
     error?: string;
 };
+
+export interface NewsMetadata {
+    date?: string;
+    time?: string;
+    topics?: string[];
+    tags?: string[];
+    language?: string;
+    apiProvider?: string;
+    processingTime?: string;
+    source?: string;
+    outputFormat?: string;
+}

@@ -70,14 +70,12 @@
     margin-bottom: 20px;
 }
 
-/* 基础文档样式 */
 .daily-news {
   max-width: 800px;
   margin: 0 auto;
   line-height: 1.6;
 }
 
-/* 标题样式 */
 .daily-news h1 {
   padding-bottom: 0.3em;
   border-bottom: 1px solid var(--background-modifier-border);
@@ -89,7 +87,6 @@
   margin-top: 2em;
 }
 
-/* 目录样式 */
 .daily-news .table-of-contents {
   background: var(--background-primary-alt);
   padding: 1em;
@@ -97,13 +94,11 @@
   margin: 1em 0;
 }
 
-/* 关键词高亮 */
 .daily-news strong {
   color: var(--text-accent);
   font-weight: 600;
 }
 
-/* 新闻摘要块 */
 .daily-news blockquote {
   border-left: 3px solid var(--text-accent);
   margin: 1em 0;
@@ -111,14 +106,12 @@
   background: var(--background-primary-alt);
 }
 
-/* 新闻元数据 */
 .daily-news .metadata {
   color: var(--text-muted);
   font-size: 0.9em;
   margin-bottom: 1em;
 }
 
-/* 链接样式 */
 .daily-news a {
   color: var(--text-accent);
   text-decoration: none;
@@ -128,26 +121,22 @@
   text-decoration: underline;
 }
 
-/* 列表样式 */
 .daily-news ul {
   padding-left: 1.5em;
   margin: 0.5em 0;
 }
 
-/* 分隔线样式 */
 .daily-news hr {
   margin: 2em 0;
   border: none;
   border-bottom: 1px solid var(--background-modifier-border);
 }
 
-/* 图标样式 */
 .daily-news .icon {
   display: inline-block;
   margin-right: 0.3em;
 }
 
-/* 输出格式特定样式 */
 .daily-news.detailed .summary {
   font-size: 1.1em;
   line-height: 1.8;
@@ -159,7 +148,6 @@
   line-height: 1.6;
 }
 
-/* 响应式布局 */
 @media screen and (max-width: 800px) {
   .daily-news {
     padding: 0 1em;

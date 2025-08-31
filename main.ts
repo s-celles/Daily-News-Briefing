@@ -4,7 +4,7 @@ import { DEFAULT_SETTINGS } from './src/types';
 import { DailyNewsSettingTab } from './src/settings-tab';
 import { NewsProviderFactory } from './src/providers/news-provider-factory';
 import type { BaseNewsProvider } from './src/providers/base-news-provider';
-import { FileUtils, LanguageUtils, ContentUtils } from './src/utils';
+import { FileUtils, LanguageUtils, ContentUtils, MetadataUtils } from './src/utils';
 import { LANGUAGE_TRANSLATIONS } from './src/constants';
 
 export default class DailyNewsPlugin extends Plugin {
@@ -86,6 +86,7 @@ export default class DailyNewsPlugin extends Plugin {
         }
 
         const date = new Date().toISOString().split('T')[0];
+        const processingStartTime = Date.now();
         
         try {
             new Notice('Generating daily news...');
@@ -99,9 +100,10 @@ export default class DailyNewsPlugin extends Plugin {
                 new Notice('Daily news already generated for today.', 5000);
                 return fileName;
             }
-            
+
+            let content = '';
             // Basic header content
-            let content = `*${LanguageUtils.getTranslation('generatedAt', this.settings.language)} ${new Date().toLocaleTimeString()}*\n\n`;
+            content += `*${LanguageUtils.getTranslation('generatedAt', this.settings.language)} ${new Date().toLocaleTimeString()}*\n\n`;
             content += `---\n\n`;
 
             // Add table of contents
@@ -197,6 +199,15 @@ export default class DailyNewsPlugin extends Plugin {
             
             if (this.settings.enableNotifications) {
                 new Notice('Daily news generated successfully', 3000);
+            }
+
+            // Generate metadata if enabled
+            if (this.settings.enableMetadata) {
+                const metadata = MetadataUtils.generateMetadata(
+                    this.settings, 
+                    processingStartTime,
+                );
+                content = MetadataUtils.formatMetadataAsYAML(metadata) + content;
             }
             
             return fileName;

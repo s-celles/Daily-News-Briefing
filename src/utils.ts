@@ -1,5 +1,5 @@
 import { App, TFile, Notice } from 'obsidian';
-import type { DailyNewsSettings, TopicStatus } from './types';
+import type { DailyNewsSettings, TopicStatus, NewsMetadata} from './types';
 import { LANGUAGE_TRANSLATIONS } from './constants';
 
 export class FileUtils {
@@ -60,6 +60,98 @@ export class LanguageUtils {
         
         // Return the translation for the key or the key itself if no translation exists
         return translations[key] || LANGUAGE_TRANSLATIONS['en'][key] || key;
+    }
+}
+
+export class MetadataUtils {
+    static generateMetadata(
+        settings: DailyNewsSettings, 
+        processingStartTime: number,
+    ): NewsMetadata {
+        const metadata: NewsMetadata = {};
+        const processingEndTime = Date.now();
+        const processingTimeMs = processingEndTime - processingStartTime;
+
+        if (settings.includeDate) {
+            metadata.date = new Date().toISOString().split('T')[0];
+        }
+
+        if (settings.includeTime) {
+            metadata.time = new Date().toLocaleTimeString();
+        }
+
+        if (settings.includeTopics) {
+            metadata.topics = [...settings.topics];
+        }
+
+        if (settings.includeLanguage) {
+            metadata.language = settings.language;
+        }
+
+        if (settings.includeApiProvider) {
+            metadata.apiProvider = settings.apiProvider === 'google' ? 'Google (Search + Gemini)' : 'Sonar by Perplexity';
+        }
+
+        if (settings.includeProcessingTime) {
+            const seconds = Math.round(processingTimeMs / 1000);
+            metadata.processingTime = `${seconds}s`;
+        }
+
+        if (settings.includeTags) {
+            // Generate tags from topics and add some standard tags
+            const topicTags = settings.topics.map(topic => 
+                topic.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+            );
+            const standardTags = ['daily-news', settings.apiProvider];
+            metadata.tags = [...new Set([...topicTags, ...standardTags])];
+        }
+
+        if (settings.includeSource) {
+            metadata.source = settings.apiProvider === 'google' ? 'Google Search + Gemini AI' : 'Perplexity Sonar';
+        }
+
+        if (settings.includeOutputFormat) {
+            metadata.outputFormat = settings.outputFormat;
+        }
+
+        return metadata;
+    }
+
+    static formatMetadataAsYAML(metadata: NewsMetadata): string {
+        if (Object.keys(metadata).length === 0) {
+            return '';
+        }
+
+        let yaml = '---\n';
+        
+        // Handle each metadata field with proper YAML formatting
+        Object.entries(metadata).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+                if (Array.isArray(value)) {
+                    // Format arrays
+                    if (value.length === 0) {
+                        yaml += `${key}: []\n`;
+                    } else if (value.length === 1) {
+                        yaml += `${key}: ["${value[0]}"]\n`;
+                    } else {
+                        yaml += `${key}:\n`;
+                        value.forEach(item => {
+                            yaml += `  - "${item}"\n`;
+                        });
+                    }
+                } else if (typeof value === 'string') {
+                    // Escape quotes in string values
+                    const escapedValue = value.replace(/"/g, '\\"');
+                    yaml += `${key}: "${escapedValue}"\n`;
+                } else {
+                    // Numbers, booleans, etc.
+                    yaml += `${key}: ${value}\n`;
+                }
+            }
+        });
+        
+        yaml += '---\n\n';
+        return yaml;
     }
 }
 
