@@ -49,5 +49,36 @@ export const LANGUAGE_TRANSLATIONS: Record<string, Record<string, string>> = {
         noRecentNews: 'Nessuna notizia recente trovata per',
         errorRetrieving: 'Errore nel recuperare notizie per',
         limitedNews: 'Notizie sostanziali limitate trovate su'
+    },
+    'pt': {
+        keyDevelopments: 'Desenvolvimentos Principais',
+        analysisContext: 'Análise e Contexto',
+        processingStatus: 'Status do Processamento',
+        generatedAt: 'Gerado às',
+        tableOfContents: 'Índice',
+        noRecentNews: 'Nenhuma notícia recente encontrada para',
+        errorRetrieving: 'Erro ao recuperar notícias para',
+        limitedNews: 'Notícias substantivas limitadas encontradas sobre'
+    },
+    'zh': {
+        keyDevelopments: '关键动态',
+        analysisContext: '分析与背景',
+        processingStatus: '处理状态',
+        generatedAt: '生成时间',
+        tableOfContents: '目录',
+        noRecentNews: '未找到相关的最新新闻：',
+        errorRetrieving: '获取新闻时出错：',
+        limitedNews: '找到有限的实质性新闻：'
     }
 };
+
+// Language display names for the dropdown
+export const LANGUAGE_NAMES: Record<string, string> = {
+    'en': 'English',
+    'fr': 'Français (French)',
+    'de': 'Deutsch (German)',
+    'es': 'Español (Spanish)',
+    'it': 'Italiano (Italian)',
+    'zh': '中文 (Chinese)',
+};// Language translations for different UI elements
+

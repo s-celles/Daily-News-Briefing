@@ -1,6 +1,7 @@
 import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
 import type { DailyNewsSettings } from './types';
 import type DailyNewsPlugin from '../main';
+import { LANGUAGE_NAMES } from './constants';
 
 export class DailyNewsSettingTab extends PluginSettingTab {
     plugin: DailyNewsPlugin;
@@ -95,14 +96,20 @@ export class DailyNewsSettingTab extends PluginSettingTab {
         
         new Setting(containerEl)
             .setName('Language')
-            .setDesc('Language for news content (ISO 639-1 code: en, fr, de, es, etc.)')
-            .addText(text => text
-                .setPlaceholder('en')
-                .setValue(this.plugin.settings.language)
-                .onChange(async (value) => {
-                    this.plugin.settings.language = value;
-                    await this.plugin.saveSettings();
-                }));
+            .setDesc('Language for news content and UI elements')
+            .addDropdown(dropdown => {
+                // Add all supported languages to the dropdown
+                Object.entries(LANGUAGE_NAMES).forEach(([code, name]) => {
+                    dropdown.addOption(code, name);
+                });
+                
+                return dropdown
+                    .setValue(this.plugin.settings.language)
+                    .onChange(async (value) => {
+                        this.plugin.settings.language = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
         
         new Setting(containerEl)
             .setName('Topics')

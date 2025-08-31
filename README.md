@@ -210,6 +210,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Changelog
 
+### 1.7.1
+- Add dropdown menu for multi-language support
+- Add meta data 
+
 ### 1.7.0
 - Enable multi-language support thanks to [@s-celles](https://github.com/s-celles)
 
