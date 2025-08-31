@@ -211,6 +211,9 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Changelog
 
 ### 1.7.1
+- Fix metadata generation error
+
+### 1.7.1
 - Add dropdown menu for multi-language support
 - Add meta data and meta settings
 
