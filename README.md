@@ -187,6 +187,8 @@ If you encounter issues or have suggestions:
 2. Review existing discussions
 3. Create a new issue with detailed information
 
+[![Buy Me a Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://www.buymeacoffee.com/adamchen)
+
 ## Contributing
 
 Contributions are welcome! Please:
