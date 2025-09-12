@@ -3,280 +3,334 @@
 > [!IMPORTANT]
 > Daily-News-Briefing has been featured by [Perplexity Cookbook](https://docs.perplexity.ai/cookbook/showcase/daily-news-briefing)!
 
-Get AI-powered daily news summaries directly in your Obsidian vault. Stay informed about your topics of interest with smart, automated news collection and summarization.
+**Get AI-powered daily news summaries about topics you care about, delivered automatically to your vault.**
 
-## Features
+## 🚀 Quick Start (5 minutes setup)
 
-- 🤖 AI-powered news summarization using Google's Gemini 2.0 Flash model or Perplexity's Sonar
-- 📅 Automated daily news collection with intelligent scheduling
-- 🎯 Customizable topics and news sources
-- 🔍 Advanced multi-phase search strategy with AI generated queries
-- 📊 Detailed or concise summary formats
-- 🎨 Beautiful, theme-aware formatting
-- ⚡ API usage optimization with request throttling
-- 🏷️ Quality-based news filtering
-- 📂 Organized news archive with table of contents
+1. **Install the plugin** from Obsidian Community Plugins
+2. **Choose your AI provider** (we recommend Perplexity for beginners)
+3. **Get your API key** (see detailed guides below)
+4. **Configure your topics** (e.g., "Technology", "World News")
+5. **Set your schedule** and you're done!
 
-## Prerequisites
+---
 
-To use this plugin, you may choose between two API providers:
+## ✨ Key Features
 
-### Option 1: Google APIs (requires 3 keys)
-1. A Google Custom Search API key
-2. A Custom Search Engine ID
-3. A Google Gemini API key
+- 🤖 **AI-Powered Summaries** - Smart news analysis using Google Gemini or Perplexity Sonar
+- 📅 **Auto-Generated Daily Briefings** - Wake up to fresh news in your vault
+- 🎯 **Custom Topics** - Track exactly what interests you
+- 🌍 **Multi-Language Support** - News in English, French, German, Spanish, Italian
+- 📱 **One-Click Access** - Sidebar button for instant news generation
+- 📊 **Beautiful Formatting** - Clean, readable summaries with sources
+- ⚡ **Two API Options** - Simple Perplexity setup or advanced Google configuration
 
-### Option 2: Perplexity API (requires 1 key)
-1. A Perplexity Sonar API key
+---
 
-> **Note**: Perplexity is simple and easy to use, but Google is free and more customizable.
+## 🔧 Installation
 
-## Installation
+### Step 1: Install Plugin
+1. Open Obsidian Settings (`Ctrl/Cmd + ,`)
+2. Navigate to **Community Plugins** → Turn off **Safe Mode**
+3. Click **Browse** → Search for **"Daily News Briefing"**
+4. Click **Install** → **Enable**
 
-1. Open Obsidian Settings
-2. Go to Community Plugins and disable Safe Mode
-3. Click Browse and search for "Daily News Briefing"
-4. Install the plugin
-5. Enable the plugin in your list of installed plugins
+### Step 2: Choose Your AI Provider
 
-## Configuration
+You have two options. **We recommend Perplexity for beginners:**
+
+| Provider | Pros | Cons | Best For |
+|----------|------|------|----------|
+| **Perplexity Sonar** ⭐ | • Only 1 API key needed<br>• Simple setup<br>• Great results | • Paid service only | Beginners, simple setup |
+| **Google APIs** | • Free tier available<br>• More customization<br>• Advanced filtering | • 3 API keys required<br>• Complex setup | Power users, free option |
+
+---
+
+## 🔑 API Setup Guides
+
+### Option A: Perplexity Sonar (Recommended for Beginners)
+
+**Why choose Perplexity?** Simple setup with just one API key, excellent results out of the box.
+
+1. **Get your API key:** Visit [Perplexity API](https://perplexity.ai/)
+
+2. **Configure in plugin:**
+   - Open plugin settings
+   - Choose **"Sonar by Perplexity"** as API Provider
+   - Paste your API key in **"Sonar API key"** field
+
+### Option B: Google APIs (Free Option)
+
+**Why choose Google?** Free tier available, more advanced customization options.
+
+You'll need 3 different keys:
+
+#### 1. Google Custom Search API Key (FREE)
+Get your Google Custom Search API Key at [Google Cloud Console](https://console.cloud.google.com/)
+
+#### 2. Google Search Engine ID (FREE)
+Create your Search Engine and copy the **Search Engine ID** at [Google Programmable Search Engine](https://programmablesearchengine.google.com/controlpanel/all)
+
+#### 3. Gemini API Key (FREE)
+Get your Gemini API Key at [Google AI Studio](https://aistudio.google.com/apikey)
+
+**Configure in plugin:**
+- Choose **"Google (Search + Gemini)"** as API Provider
+- Enter all three keys in respective fields
+
+---
+
+## ⚙️ Basic Configuration
 
 ### Essential Settings
 
-1. **API Provider Selection**: 
-   - Choose between Google APIs or Sonar API
+1. **Topics** (comma-separated):
+   ```
+   Technology, World News, Science, Business
+   ```
 
-2. **API Keys**: 
-   - For Google:
-     - Enter your Google Search API Key (for fetching news)
-     - Enter your Search Engine ID
-     - Enter your Gemini API Key (for summarization)
-   - For Perplexity:
-     - Enter your Sonar API key (combines search and summarization)
+2. **Schedule Time** (24-hour format):
+   ```
+   08:00
+   ```
 
-3. **Topics**: 
-   - Add your topics of interest (e.g., "Technology", "World News")
-   - Each topic will be searched and summarized separately
+3. **Language** (ISO code):
+   ```
+   en (English), fr (French), de (German), es (Spanish), it (Italian)
+   ```
 
-4. **Schedule**: 
-   - Set your preferred time for daily news generation (24-hour format)
-   - Choose your archive folder location
+4. **Archive Folder**:
+   ```
+   News Archive
+   ```
 
-### Advanced Settings
+### That's it! You're ready to go! 🎉
 
-- **Use AI for search query** (for Google API):
-   - Generate queries with Gemini for Google search
-   - Get more comprehensive results
-   - Enable by default
+---
 
-- **Content Quality** (for Google API):
-  - Set news items per topic (3-15)
-  - Configure maximum search results (10-50)
-  - Enable/disable strict quality filtering
-  - Add preferred and excluded domains
+## 📱 How to Use
 
-- **Output Format**:
-  - Choose between detailed or concise summaries
-  - Enable/disable notifications
-
-- **API Usage**:
-  - Customize date range for searches
-  - Set minimum content length
-  - Use custom AI prompts for summarization
-  - Configure domain preferences for both API providers
-
-## Usage
-
-### Automatic Mode
-
-1. Configure your settings
-2. The plugin will automatically generate news at your scheduled time
-3. Find your daily news in the specified archive folder
+### Automatic Mode (Recommended)
+- Plugin generates news daily at your scheduled time
+- Find your briefings in the **Archive Folder**
 
 ### Manual Generation
+- **Command Palette**: `Ctrl/Cmd + P` → "Generate news now"
+- **Sidebar Button**: Click the 📰 icon in the left sidebar
 
-1. Use the command palette (Ctrl/Cmd + P)
-2. Search for "Generate news now"
-3. Click to generate news immediately
+### Quick Access
+The sidebar button is smart:
+- If today's news exists → **Opens it**
+- If today's news doesn't exist → **Creates it**
 
-### Sidebar Button
+---
 
-For quick access, use the newspaper icon in the sidebar to:
-- Generate today's news if it doesn't exist yet
-- Open today's news if it already exists
+## 📖 Example Output
 
-## Example Output
+Your daily news will look like this:
 
 ```markdown
-# Daily News - 2025-04-12
+# Daily News - 2024-12-08
 
-*Generated at 09:53:35*
+*Generated at 09:15:42*
 
 ---
 
 ## Table of Contents
-
-- [AI](#ai)
-- [World News](#world%20news)
+- [Technology](#technology)
 
 ---
 
-## AI
+## Technology
 
 ### Key Developments
-- **[Apple's AI Features Face Challenges Amidst Tariff Concerns]**: According to a *New York Times* report from April 11, 2025, Apple's AI headset sales have been disappointing. Furthermore, the AI's notification summaries have misrepresented news reports. These issues are compounded by the impact of Trump's tariffs. [Source](https://www.nytimes.com/2025/04/11/technology/apple-issues-trump-tariffs.html)
-- **[Ohio University Launches Artificial Intelligence Bachelor of Science Degree]**: Ohio University's Russ College of Engineering and Technology has launched a new Bachelor of Science degree program in Artificial Intelligence. [Source](https://www.ohio.edu/engineering/)
+- **OpenAI Releases GPT-5 with Enhanced Reasoning**: OpenAI announced GPT-5 today with significant improvements in mathematical reasoning and code generation, achieving 95% accuracy on complex problem-solving tasks. [Source](https://openai.com/blog/gpt-5-release)
+- **Apple's Vision Pro 2 Enters Mass Production**: Apple supplier Foxconn confirmed that Vision Pro 2 manufacturing began this week, with expected release in Q2 2024 featuring improved battery life and reduced weight. [Source](https://www.apple.com/newsroom)
 
 ### Analysis & Context
-The *New York Times* article suggests that Apple is facing challenges on multiple fronts. The combination of disappointing AI product performance and the economic pressures from tariffs paints a concerning picture for the company's innovation efforts. The launch of an AI degree program at Ohio University reflects the growing importance of AI in academia and industry, indicating a broader trend of investment in AI education and research.
+The AI landscape continues to evolve rapidly with OpenAI's latest release positioning them ahead of competitors. Apple's Vision Pro 2 production suggests confidence in the spatial computing market despite mixed reviews of the original device.
 ```
 
-## Tips for Best Results
+---
 
-1. **API Provider Selection**:
-   - Google APIs provide more control over news quality and filtering
-   - Sonar API offers simpler setup with just one API key
-   - Choose based on your preference for simplicity vs. control
+## 🎨 Customization Options
 
-2. **Topic Selection**:
-   - Use specific topics rather than broad categories
-   - Topic-specific search terms are automatically added for better results
+### Output Formats
+- **Detailed** - Full summaries with analysis (default)
+- **Concise** - Brief bullet points
 
-3. **Quality Settings** (for Google API):
-   - Enable strict quality filtering for more reliable sources
-   - Add trusted news sources to preferred domains
-   - Add known low-quality sources to excluded domains
+### Google Advanced Settings
+- **AI-Generated Search Queries** - Smarter search results
+- **Quality Filtering** - Filter out low-quality sources
+- **Custom Domains** - Prefer specific news sources
 
-4. **API Usage Optimization**:
-   - Adjust maximum search results based on your API quota
-   - Set appropriate news items per topic for comprehensive coverage
-   - The plugin now includes request throttling to prevent API rate limits
+### Both Providers
+- **Custom AI Prompts** - Write your own summarization instructions
+- **Analysis & Context** - Toggle detailed analysis sections
 
-## Troubleshooting
+---
 
-### Common Issues
+## 🚨 Troubleshooting
 
-1. **No News Generated**:
-   - Check API keys (the plugin will verify basic key formats)
-   - Verify scheduled time format
-   - Ensure topics are properly configured
-   - Check your internet connection
+### ❌ "No news generated"
+**Check these in order:**
+1. API keys are correctly entered (no extra spaces)
+2. Topics are configured (comma-separated)
+3. Internet connection is working
+4. Try manual generation first
 
-2. **Poor Quality Content**:
-   - Enable strict quality filtering
-   - Add more specific topics
-   - Review excluded domains list
-   - Try using Google APIs for more filtering options
+### ❌ "API Error" messages
+**For Perplexity:**
+- Verify API key
+- Check account has sufficient credits
 
-3. **API Limits or Errors**:
-   - Reduce maximum search results
-   - Reduce news items per topic
-   - Check API key validity
-   - Verify your API quota has not been exceeded
+**For Google:**
+- All 3 API keys must be valid
+- Check API quotas/billing
 
-4. **Scheduled Generation Issues**:
-   - The plugin now handles system sleep/wake cycles better
-   - Check if news file already exists for today
-   - Manually trigger generation to test configuration
+### ❌ Poor quality summaries
+- Try different topics (be more specific)
+- For Google: Enable **"Use AI for search queries"**
+- For Google: Increase **"News items per topic"**
 
-## Support
+### ❌ Plugin not working after update
+1. Reload Obsidian (`Ctrl/Cmd + R`)
+2. Disable and re-enable the plugin
+3. Check for plugin updates
 
-If you encounter issues or have suggestions:
+---
 
-1. Check the [GitHub Issues](https://github.com/Ghost04718/Daily-News-Briefing/issues)
-2. Review existing discussions
-3. Create a new issue with detailed information
+## 💡 Pro Tips for Best Results
+
+### Topic Selection
+✅ **Good topics:**
+- "Artificial Intelligence"
+- "Climate Change"
+- "Space Exploration"
+- "Cryptocurrency"
+
+❌ **Avoid vague topics:**
+- "News"
+- "Updates" 
+- "Important stuff"
+
+### Scheduling
+- Set generation time when you typically start your day
+- Avoid peak internet usage hours for faster processing
+
+### Language Settings
+- News content will be in your selected language
+- Sources may still be in English but summaries are translated
+
+---
+
+## 🆘 Need Help?
+
+1. 📖 [Check GitHub Issues](https://github.com/Ghost04718/Daily-News-Briefing/issues)
+2. 💬 Search existing discussions
+3. 🐛 Create new issue with:
+   - Your settings (hide API keys!)
+   - Error messages
+   - Steps to reproduce
+
+---
+
+## ❤️ Support the Project
+
+If this plugin saves you time and keeps you informed:
 
 [![Buy Me a Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://www.buymeacoffee.com/adamchen)
 
-## Contributing
+---
 
-Contributions are welcome! Please:
+## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
+We welcome:
+- 🐛 Bug reports and fixes
+- ✨ Feature suggestions
+- 🌍 New language translations
+- 📚 Documentation improvements
 
-### Contributors
-- @[s-celles](https://github.com/s-celles): Thank you for refactoring the project and contributed many valuable features.
+**Contributors:**
+- [@s-celles](https://github.com/s-celles): Multi-language support and major refactoring
 
-## License
+---
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+## 📄 License
 
-## Acknowledgments
+MIT License - Use freely, modify as needed!
 
-- Obsidian Community
-- Google Cloud Platform and Perplexity
-- Contributors and testers
+---
 
-## Changelog
+## 📋 Changelog
 
-### 1.7.2
-- Fix metadata generation error
+### v1.7.2
+- Multi-language support (EN, FR, DE, ES, IT)
+- Improved error handling
+- Better metadata generation
 
-### 1.7.1
-- Add dropdown menu for multi-language support
-- Add meta data and meta settings
+### Previous Versions
+<details>
+<summary>Click to view changelog history</summary>
 
-### 1.7.0
-- Enable multi-language support thanks to [@s-celles](https://github.com/s-celles)
+**v1.6.2**
+- Toggle Analysis & Context section on/off
 
-### 1.6.2
-- Users now can enable or disable "Analysis & Context" function based on their preference
+**v1.6.1** 
+- Better failure handling for note generation
 
-### 1.6.1
-- Add improved note generation failure handling
+**v1.6.0**
+- AI-powered news filtering (replaces rule-based)
 
-### 1.6.0
-- Enable AI filtering instead of rule-based filtering
+**v1.5.1**
+- Upgraded to Gemini Flash 2.0
 
-### 1.5.1
-- Use Gemini Flash 2.0 instead of 2.5
+**v1.5.0**
+- AI-generated search queries for better results
+- Enhanced Google API performance
+- Upgraded to Gemini Flash 2.5
 
-### 1.5.0
-- Optimize Google Generation
-   - Search with AI generated queries (requires Gemini API) and cached for low API comsumption
-   - Enhance result filtering
-   - Upgrade to Gemini Flash 2.5
+**v1.4.2**
+- Enhanced Sonar API prompts
 
-### 1.4.2
-- Enhance Sonar prompts
+**v1.4.1**
+- Improved Sonar API performance
+- Simplified Sonar settings
 
-### 1.4.1 
-- Enhance Sonar Performance
-   - Improve Sonar prompt
-   - Simplify Sonar settings
+**v1.4.0**
+- Added Perplexity Sonar support
+- API request throttling
+- Enhanced documentation
 
-### 1.4.0
-- Support Sonar by Perplexity to simplify the API key settings
-- Implemented API request throttling to prevent rate limits
-- Enhanced documentation in README
+**v1.3.1**
+- Clearer settings names
 
-### 1.3.1
-- Rename settings to avoid confusion
+**v1.3.0**
+- Added sidebar button for easy access
+- Auto-create or open today's news
 
-### 1.3.0
-- Add sidebar button to improve UX which can:
-   - Create today's news summary if does not exist
-   - Open today's news summary if exists
+**v1.2.1**
+- Prevent duplicate daily summaries
+- Updated documentation
 
-### 1.2.1
-- Avoid generating duplicate daily summary
-- Update README.md
+**v1.2.0**
+- Performance optimizations
+- Better console logging
 
-### 1.2.0
-- Fix the release issue
-- Optimize console log and performance
+**v1.1.1**
+- Improved news filtering
 
-### 1.1.1
-- Optimize news filtering
+**v1.1.0**
+- Simplified configuration
+- Better summarization and layout
 
-### 1.1.0
-- Simplify configuration options
-- Improve summarization and layout
-
-### 1.0.0
+**v1.0.0**
 - Initial release
 - Core news fetching and summarization
-- Basic configuration options
+</details>
+
+---
+
+## 🎯 What's Next?
+
+**Stay tuned!** ⭐ Star the repo to get notified of updates.
