@@ -1,6 +1,7 @@
 import type { DailyNewsSettings } from '../types';
 import { BaseNewsProvider } from './base-news-provider';
 import { GoogleNewsProvider } from './google-news-provider';
+import { GptNewsProvider } from './gpt-news-provider';
 import { PerplexityNewsProvider } from './perplexity-news-provider';
 
 export class NewsProviderFactory {
@@ -10,6 +11,8 @@ export class NewsProviderFactory {
                 return new GoogleNewsProvider(settings);
             case 'sonar':
                 return new PerplexityNewsProvider(settings);
+            case 'gpt':
+                return new GptNewsProvider(settings);
             default:
                 throw new Error(`Unknown API provider: ${settings.apiProvider}`);
         }

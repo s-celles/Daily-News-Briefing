@@ -264,14 +264,17 @@ MIT License - Use freely, modify as needed!
 
 ## 📋 Changelog
 
-### v1.7.2
-- Multi-language support (EN, FR, DE, ES, IT)
-- Improved error handling
-- Better metadata generation
+### v1.7.3
+- Add OpenAI models support
 
 ### Previous Versions
 <details>
 <summary>Click to view changelog history</summary>
+
+**1.7.2**
+- Multi-language support (EN, FR, DE, ES, IT)
+- Improved error handling
+- Better metadata generation
 
 **v1.6.2**
 - Toggle Analysis & Context section on/off

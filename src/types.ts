@@ -1,6 +1,6 @@
 export interface DailyNewsSettings {
     // API provider selection
-    apiProvider: 'google' | 'sonar';
+    apiProvider: 'google' | 'sonar' | 'gpt';
 
     // Google API settings
     googleSearchApiKey: string;
@@ -9,6 +9,9 @@ export interface DailyNewsSettings {
 
     // Perplexity API settings
     perplexityApiKey: string;
+
+    // OpenAI API settings
+    openaiApiKey: string;
     
     // Core functionality
     topics: string[];
@@ -59,6 +62,9 @@ export const DEFAULT_SETTINGS: DailyNewsSettings = {
 
     // Perplexity API settings
     perplexityApiKey: '',
+
+    // OpenAI API settings
+    openaiApiKey: '',
     
     // Core functionality
     topics: ['Technology', 'World News'],
@@ -97,7 +103,6 @@ export const DEFAULT_SETTINGS: DailyNewsSettings = {
     useAIJudge: true,
     aiJudgePrompt: '' // Custom prompt for AI judge, empty by default
 }
-
 export interface NewsItem {
     title: string;
     link: string;

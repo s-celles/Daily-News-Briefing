@@ -22,12 +22,13 @@ export class DailyNewsSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('API Provider')
-            .setDesc('Select either Google APIs (requires 3 keys) or Sonar API (requires 1 key)')
+            .setDesc('Select your preferred API provider')
             .addDropdown(dropdown => dropdown
                 .addOption('google', 'Google (Search + Gemini)')
                 .addOption('sonar', 'Sonar by Perplexity')
+                .addOption('gpt', 'GPT-4o by OpenAI')
                 .setValue(this.plugin.settings.apiProvider)
-                .onChange(async (value: 'google' | 'sonar') => {
+                .onChange(async (value: 'google' | 'sonar' | 'gpt') => {
                     this.plugin.settings.apiProvider = value;
                     await this.plugin.saveSettings();
                     this.display(); // Refresh to show/hide appropriate fields
@@ -71,7 +72,7 @@ export class DailyNewsSettingTab extends PluginSettingTab {
                         this.plugin.settings.geminiApiKey = value;
                         await this.plugin.saveSettings();
                     }));
-        } else {
+        } else if (this.plugin.settings.apiProvider === 'sonar') {
             // Sonar API settings
             new Setting(containerEl)
                 .setName('Sonar API key')
@@ -89,6 +90,18 @@ export class DailyNewsSettingTab extends PluginSettingTab {
                 text: 'Sonar API combines search and summarization in one step, providing a simpler setup with only one API key.',
                 cls: 'setting-item-description'
             });
+        } else {
+            // GPT API settings
+            new Setting(containerEl)
+                .setName('OpenAI API key')
+                .setDesc('Your OpenAI API key for GPT-4o')
+                .addText(text => text
+                    .setPlaceholder('Enter OpenAI API key')
+                    .setValue(this.plugin.settings.openaiApiKey)
+                    .onChange(async (value) => {
+                        this.plugin.settings.openaiApiKey = value;
+                        await this.plugin.saveSettings();
+                    }));
         }
 
         // News Configuration section
@@ -174,9 +187,7 @@ export class DailyNewsSettingTab extends PluginSettingTab {
         }
 
         // Output Settings section
-        containerEl.createEl('h2', {text: 'Output Configuration'});
-        
-        if (this.plugin.settings.apiProvider === 'google') {
+        if (this.plugin.settings.apiProvider === 'google' || this.plugin.settings.apiProvider === 'gpt') {
             new Setting(containerEl)
                 .setName('Output style')
                 .setDesc('Choose level of detail for news summaries')
@@ -394,7 +405,7 @@ export class DailyNewsSettingTab extends PluginSettingTab {
                 }
             }
             
-            // Custom prompt setting - available for both providers
+            // Custom prompt setting - available for all providers
             new Setting(containerEl)
                 .setName('Use custom AI prompt')
                 .setDesc('Enable to use your own custom AI prompt for summarization')
@@ -407,9 +418,12 @@ export class DailyNewsSettingTab extends PluginSettingTab {
                     }));
                     
             if (this.plugin.settings.useCustomPrompt) {
-                const customPromptDesc = this.plugin.settings.apiProvider === 'google' 
-                    ? 'Your custom prompt for the AI summarization (use {{NEWS_TEXT}} as placeholder for the news content)'
-                    : 'Your custom prompt for the Sonar API (use {{NEWS_TEXT}} as placeholder for the topic search instruction)';
+                let customPromptDesc = 'Your custom prompt for the AI summarization.';
+                if (this.plugin.settings.apiProvider === 'google') {
+                    customPromptDesc += ' (use {{NEWS_TEXT}} as placeholder for the news content)';
+                } else {
+                    customPromptDesc += ' For providers with search, this is used as a search instruction (e.g. "What is the latest news on {{TOPIC}}?")';
+                }
                 
                 new Setting(containerEl)
                     .setName('Custom AI prompt')
