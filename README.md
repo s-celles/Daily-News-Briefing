@@ -264,12 +264,17 @@ MIT License - Use freely, modify as needed!
 
 ## 📋 Changelog
 
-### v1.7.3
-- Add OpenAI models support
+### v1.7.4
+- Reduce token consumption for Gemini API due to Google new policy for free tier
+   - Add prompt cache for query generation
+   - Optimize prompt
 
 ### Previous Versions
 <details>
 <summary>Click to view changelog history</summary>
+
+**1.7.3**
+- Add OpenAI models support
 
 **1.7.2**
 - Multi-language support (EN, FR, DE, ES, IT)

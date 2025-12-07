@@ -9,6 +9,8 @@ export class GoogleNewsProvider extends BaseNewsProvider {
         super(settings);
     }
 
+    private searchCache: Map<string, string> = new Map();
+
     getProviderName(): string {
         return 'Google (Search + Gemini)';
     }
@@ -126,6 +128,10 @@ export class GoogleNewsProvider extends BaseNewsProvider {
     }
 
     private async generateAISearchQuery(topic: string): Promise<string | null> {
+        if (this.searchCache.has(topic)) {
+            return this.searchCache.get(topic)!;
+        }
+
         try {
             if (!this.settings.geminiApiKey) {
                 return null;
@@ -156,6 +162,7 @@ Only return the search query string itself, without any explanations or addition
             const query = result.response.text().trim();
             
             if (query && query.length > 0 && query.length < 200) {
+                this.searchCache.set(topic, query);
                 return query;
             }
             return null;
@@ -177,7 +184,7 @@ Only return the search query string itself, without any explanations or addition
                 generationConfig: {
                     temperature: 0.1,
                     topK: 40,
-                    maxOutputTokens: 2048
+                    maxOutputTokens: 1024
                 }
             });
 
@@ -227,13 +234,12 @@ Only return the search query string itself, without any explanations or addition
 
     INSTRUCTIONS:
     1. For each news item, respond with either "KEEP" or "SKIP" followed by the item number
-    2. If KEEP, provide a brief reason (max 20 words)
-    3. Select maximum ${this.settings.resultsPerTopic} items to KEEP
-    4. Format your response exactly as shown below:
+    2. Select maximum ${this.settings.resultsPerTopic} items to KEEP
+    3. Format your response exactly as shown below:
 
-    ITEM_1: KEEP - [brief reason]
-    ITEM_2: SKIP - [brief reason]
-    ITEM_3: KEEP - [brief reason]
+    ITEM_1: KEEP
+    ITEM_2: SKIP
+    ITEM_3: KEEP
     ...
 
     Focus on selecting the most newsworthy and informative items for the daily briefing.`;
