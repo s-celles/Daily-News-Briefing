@@ -1,113 +1,12 @@
 import { App, Plugin, PluginSettingTab, Setting, Notice, TFile, requestUrl } from 'obsidian';
 import { GoogleGenerativeAI } from "@google/generative-ai";
-
-interface DailyNewsSettings {
-    // API provider selection
-    apiProvider: 'google' | 'sonar';
-
-    // Google API settings
-    googleSearchApiKey: string;
-    googleSearchEngineId: string;
-    geminiApiKey: string;
-
-    // Perplexity API settings
-    perplexityApiKey: string;
-    
-    // Core functionality
-    topics: string[];
-    scheduleTime: string;
-    archiveFolder: string;
-    
-    // Content quality settings
-    resultsPerTopic: number;
-    maxSearchResults: number;
-    preferredDomains: string[];
-    excludedDomains: string[];
-    
-    // Output settings
-    outputFormat: 'detailed' | 'concise';
-    enableNotifications: boolean;
-    
-    // Advanced settings
-    dateRange: string;
-    minContentLength: number;
-    useCustomPrompt: boolean;
-    customPrompt: string;
-    strictQualityFiltering: boolean;
-    qualityThreshold: number; // New setting for fine-tuning filtering
-}
-
-const DEFAULT_SETTINGS: DailyNewsSettings = {
-    // API provider selection
-    apiProvider: 'google', // Default to Google for backward compatibility
-
-    // Google API settings
-    googleSearchApiKey: '',
-    googleSearchEngineId: '',
-    geminiApiKey: '',
-
-    // Perplexity API settings
-    perplexityApiKey: '',
-    
-    // Core functionality
-    topics: ['Technology', 'World News'],
-    scheduleTime: '08:00',
-    archiveFolder: 'News Archive',
-    
-    // Content quality settings
-    resultsPerTopic: 8,
-    maxSearchResults: 30,
-    preferredDomains: ['nytimes.com', 'bbc.com', 'reuters.com', 'apnews.com'],
-    excludedDomains: ['pinterest.com', 'facebook.com', 'instagram.com'],
-    
-    // Output settings
-    outputFormat: 'detailed',
-    enableNotifications: true,
-    
-    // Advanced settings
-    dateRange: 'd2',
-    minContentLength: 80,
-    useCustomPrompt: false,
-    customPrompt: '',
-    strictQualityFiltering: false,
-    qualityThreshold: 3
-}
-
-// List of high-quality news sources
-const QUALITY_NEWS_SOURCES = [
-    // Major global news organizations
-    'nytimes.com', 'bbc.com', 'reuters.com', 'apnews.com', 'economist.com',
-    'wsj.com', 'ft.com', 'bloomberg.com', 'theguardian.com', 'npr.org',
-    'washingtonpost.com', 'aljazeera.com', 'time.com', 'latimes.com',
-    
-    // Tech news
-    'wired.com', 'techcrunch.com', 'arstechnica.com', 'theverge.com', 'cnet.com',
-    'zdnet.com', 'engadget.com', 'venturebeat.com', 'protocol.com',
-    
-    // Science & Academic
-    'nature.com', 'scientificamerican.com', 'science.org', 'newscientist.com',
-    'pnas.org', 'sciencedaily.com', 'livescience.com', 'popsci.com', 
-    
-    // Business & Finance
-    'cnbc.com', 'forbes.com', 'fortune.com', 'marketwatch.com', 'businessinsider.com',
-    'hbr.org', 'barrons.com', 'morningstar.com', 'fastcompany.com',
-    
-    // Analysis & Long form
-    'theatlantic.com', 'newyorker.com', 'politico.com', 'foreignpolicy.com',
-    'foreignaffairs.com', 'project-syndicate.org', 'brookings.edu', 'axios.com',
-    
-    // Public & International news
-    'france24.com', 'dw.com', 'abc.net.au', 'cbc.ca', 'japantimes.co.jp',
-    'independent.co.uk', 'thehindu.com', 'straitstimes.com', 'themoscowtimes.com',
-    'scmp.com'
-];
-
-// Common patterns that indicate ads or low-quality content
-const AD_PATTERNS = [
-    'Subscribe to read', 'Sign up now', 'Advertisement', 'Click here to',
-    'Special offer', 'newsletters?\\b', '\\[\\d+\\]', '©\\s*\\d{4}',
-    'cookie', 'subscribe', 'sign up', 'privacy policy', 'terms of service'
-];
+import {
+    GEMINI_MODEL_NAME,
+    GOOGLE_API_URL,
+    PERPLEXITY_API_URL,
+    QUALITY_NEWS_SOURCES,
+} from './src/constants';
+import { DailyNewsSettings, DEFAULT_SETTINGS } from './src/types';
 
 interface NewsItem {
     title: string;
@@ -161,8 +60,9 @@ class DailyNewsSettingTab extends PluginSettingTab {
             .addDropdown(dropdown => dropdown
                 .addOption('google', 'Google (Search + Gemini)')
                 .addOption('sonar', 'Sonar by Perplexity')
+                .addOption('gpt', 'GPT-4o by OpenAI')
                 .setValue(this.plugin.settings.apiProvider)
-                .onChange(async (value: 'google' | 'sonar') => {
+                .onChange(async (value: 'google' | 'sonar' | 'gpt') => {
                     this.plugin.settings.apiProvider = value;
                     await this.plugin.saveSettings();
                     this.display(); // Refresh to show/hide appropriate fields
@@ -206,7 +106,7 @@ class DailyNewsSettingTab extends PluginSettingTab {
                         this.plugin.settings.geminiApiKey = value;
                         await this.plugin.saveSettings();
                     }));
-        } else {
+        } else if (this.plugin.settings.apiProvider === 'sonar') {
             // Sonar API settings
             new Setting(containerEl)
                 .setName('Sonar API key')
@@ -224,6 +124,18 @@ class DailyNewsSettingTab extends PluginSettingTab {
                 text: 'Sonar API combines search and summarization in one step, providing a simpler setup with only one API key.',
                 cls: 'setting-item-description'
             });
+        } else if (this.plugin.settings.apiProvider === 'gpt') {
+            // GPT API settings
+            new Setting(containerEl)
+                .setName('OpenAI API key')
+                .setDesc('Your OpenAI API key for GPT-4o')
+                .addText(text => text
+                    .setPlaceholder('Enter OpenAI API key')
+                    .setValue(this.plugin.settings.openaiApiKey)
+                    .onChange(async (value) => {
+                        this.plugin.settings.openaiApiKey = value;
+                        await this.plugin.saveSettings();
+                    }));
         }
 
         // News Configuration section
@@ -690,7 +602,7 @@ export default class DailyNewsPlugin extends Plugin {
             
             try {
                 const response = await requestUrl({
-                    url: `https://www.googleapis.com/customsearch/v1?${params.toString()}`
+                    url: `${GOOGLE_API_URL}?${params.toString()}`
                 });
                 
                 const data: SearchResponse = JSON.parse(response.text);
@@ -741,7 +653,7 @@ export default class DailyNewsPlugin extends Plugin {
         let score = 5; // Base score
         
         // Domain quality checks
-        if (QUALITY_NEWS_SOURCES.some(source => domain.includes(source))) {
+        if (QUALITY_NEWS_SOURCES.some((source: string) => domain.includes(source))) {
             score += 2; // Boost for known quality sources
         }
         
@@ -860,7 +772,7 @@ export default class DailyNewsPlugin extends Plugin {
         const enhancedNewsText = newsItems.map(item => {
             // Extract domain for credibility info
             const domain = new URL(item.link).hostname.replace('www.', '');
-            const isQualitySource = QUALITY_NEWS_SOURCES.some(source => domain.includes(source));
+            const isQualitySource = QUALITY_NEWS_SOURCES.some((source: string) => domain.includes(source));
             
             // Format with additional quality metadata
             return `=== NEWS ITEM ===\n` +
@@ -879,8 +791,8 @@ export default class DailyNewsPlugin extends Plugin {
             // Initialize the Gemini API
             const genAI = new GoogleGenerativeAI(this.settings.geminiApiKey);
             
-            // Use the model "gemini-2.0-flash" for better performance
-            const modelName = "gemini-2.0-flash";
+            // Use the model from constants
+            const modelName = GEMINI_MODEL_NAME;
                 
             // console.log(`Using model ${modelName} for summarization`);
             
@@ -1023,7 +935,7 @@ Format your summary as bullet points with concrete facts:
             };
             
             const response = await requestUrl({
-                url: 'https://api.perplexity.ai/chat/completions',
+                url: PERPLEXITY_API_URL,
                 ...options
             });
             
@@ -1047,10 +959,16 @@ Format your summary as bullet points with concrete facts:
                 new Notice('Missing Google API configuration. Please check settings.', 5000);
                 return false;
             }
-        } else {
+        } else if (this.settings.apiProvider === 'sonar') {
             // Check Sonar API settings
             if (!this.settings.perplexityApiKey) {
                 new Notice('Missing Sonar API key. Please add your Perplexity API key in settings.', 5000);
+                return false;
+            }
+        } else if (this.settings.apiProvider === 'gpt') {
+            // Check GPT API settings
+            if (!this.settings.openaiApiKey) {
+                new Notice('Missing OpenAI API key. Please add your OpenAI API key in settings.', 5000);
                 return false;
             }
         }

@@ -3,6 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { BaseNewsProvider } from './base-news-provider';
 import type { NewsItem, SearchItem, SearchResponse, DailyNewsSettings } from '../types';
 import { LanguageUtils } from '../utils';
+import { GEMINI_MODEL_NAME, GOOGLE_API_URL } from '../constants';
 
 export class GoogleNewsProvider extends BaseNewsProvider {
     constructor(settings: DailyNewsSettings) {
@@ -139,7 +140,7 @@ export class GoogleNewsProvider extends BaseNewsProvider {
             
             const genAI = new GoogleGenerativeAI(this.settings.geminiApiKey);
             const model = genAI.getGenerativeModel({
-                model: "gemini-2.0-flash",
+                model: GEMINI_MODEL_NAME,
                 generationConfig: {
                     temperature: 0.3,
                     topK: 40,
@@ -180,7 +181,7 @@ Only return the search query string itself, without any explanations or addition
         try {
             const genAI = new GoogleGenerativeAI(this.settings.geminiApiKey);
             const model = genAI.getGenerativeModel({
-                model: "gemini-2.0-flash",
+                model: GEMINI_MODEL_NAME,
                 generationConfig: {
                     temperature: 0.1,
                     topK: 40,
@@ -345,7 +346,7 @@ Only return the search query string itself, without any explanations or addition
             
             try {
                 const response = await requestUrl({
-                    url: `https://www.googleapis.com/customsearch/v1?${params.toString()}`
+                    url: `${GOOGLE_API_URL}?${params.toString()}`
                 });
                 
                 const data: SearchResponse = JSON.parse(response.text);
@@ -432,7 +433,7 @@ Only return the search query string itself, without any explanations or addition
             
             const genAI = new GoogleGenerativeAI(this.settings.geminiApiKey);
             const model = genAI.getGenerativeModel({ 
-                model: "gemini-2.0-flash",
+                model: GEMINI_MODEL_NAME,
                 generationConfig: {
                     temperature: 0.2,
                     topP: 0.95,

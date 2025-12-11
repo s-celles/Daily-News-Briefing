@@ -2,6 +2,7 @@ import { requestUrl } from 'obsidian';
 import { BaseNewsProvider } from './base-news-provider';
 import type { DailyNewsSettings } from '../types';
 import { LanguageUtils } from '../utils';
+import { PERPLEXITY_API_URL, PERPLEXITY_MODEL_NAME } from '../constants';
 
 export class PerplexityNewsProvider extends BaseNewsProvider {
     constructor(settings: DailyNewsSettings) {
@@ -23,7 +24,7 @@ export class PerplexityNewsProvider extends BaseNewsProvider {
             
             // Prepare request body - Always search in English but translate results to target language
             const requestBody = {
-                model: "sonar",
+                model: PERPLEXITY_MODEL_NAME,
                 messages: [
                     {
                         role: "system",
@@ -49,7 +50,7 @@ export class PerplexityNewsProvider extends BaseNewsProvider {
             };
             
             const response = await requestUrl({
-                url: 'https://api.perplexity.ai/chat/completions',
+                url: PERPLEXITY_API_URL,
                 ...options
             });
             

@@ -24,6 +24,8 @@ export interface DailyNewsSettings {
     // Content quality settings
     resultsPerTopic: number;
     maxSearchResults: number;
+    preferredDomains: string[];
+    excludedDomains: string[];
     
     // Output settings
     outputFormat: 'detailed' | 'concise';
@@ -44,8 +46,11 @@ export interface DailyNewsSettings {
     
     // Advanced settings
     dateRange: string;
+    minContentLength: number;
     useCustomPrompt: boolean;
     customPrompt: string;
+    strictQualityFiltering: boolean;
+    qualityThreshold: number; // New setting for fine-tuning filtering
     useAIForQueries: boolean; // New setting: whether to use AI to generate search queries
     useAIJudge: boolean; // Whether to use AI for judging content quality
     aiJudgePrompt: string; // Custom prompt for AI judge, empty by default
@@ -77,6 +82,8 @@ export const DEFAULT_SETTINGS: DailyNewsSettings = {
     // Content quality settings
     resultsPerTopic: 8,
     maxSearchResults: 30,
+    preferredDomains: ['nytimes.com', 'bbc.com', 'reuters.com', 'apnews.com'],
+    excludedDomains: ['pinterest.com', 'facebook.com', 'instagram.com'],
     
     // Output settings
     outputFormat: 'detailed',
@@ -97,11 +104,14 @@ export const DEFAULT_SETTINGS: DailyNewsSettings = {
     
     // Advanced settings
     dateRange: 'd3', // Changed from d2 to d3 for broader date range
+    minContentLength: 80,
     useCustomPrompt: false,
     customPrompt: '',
     useAIForQueries: true, // Enable AI query generation by default
     useAIJudge: true,
-    aiJudgePrompt: '' // Custom prompt for AI judge, empty by default
+    aiJudgePrompt: '', // Custom prompt for AI judge, empty by default
+    strictQualityFiltering: false,
+    qualityThreshold: 3
 }
 export interface NewsItem {
     title: string;
@@ -109,6 +119,7 @@ export interface NewsItem {
     snippet: string;
     publishedTime?: string;
     source?: string;
+    qualityScore?: number;
 }
 
 export interface SearchItem {

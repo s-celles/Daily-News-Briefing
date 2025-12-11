@@ -1,3 +1,47 @@
+// API and Model Constants
+export const GEMINI_MODEL_NAME = "gemini-2.5-flash";
+export const GPT_MODEL_NAME = "gpt-4o";
+export const PERPLEXITY_MODEL_NAME = "sonar";
+export const GOOGLE_API_URL = "https://www.googleapis.com/customsearch/v1";
+export const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
+export const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
+
+// List of high-quality news sources
+export const QUALITY_NEWS_SOURCES = [
+    // Major global news organizations
+    'nytimes.com', 'bbc.com', 'reuters.com', 'apnews.com', 'economist.com',
+    'wsj.com', 'ft.com', 'bloomberg.com', 'theguardian.com', 'npr.org',
+    'washingtonpost.com', 'aljazeera.com', 'time.com', 'latimes.com',
+    
+    // Tech news
+    'wired.com', 'techcrunch.com', 'arstechnica.com', 'theverge.com', 'cnet.com',
+    'zdnet.com', 'engadget.com', 'venturebeat.com', 'protocol.com',
+    
+    // Science & Academic
+    'nature.com', 'scientificamerican.com', 'science.org', 'newscientist.com',
+    'pnas.org', 'sciencedaily.com', 'livescience.com', 'popsci.com', 
+    
+    // Business & Finance
+    'cnbc.com', 'forbes.com', 'fortune.com', 'marketwatch.com', 'businessinsider.com',
+    'hbr.org', 'barrons.com', 'morningstar.com', 'fastcompany.com',
+    
+    // Analysis & Long form
+    'theatlantic.com', 'newyorker.com', 'politico.com', 'foreignpolicy.com',
+    'foreignaffairs.com', 'project-syndicate.org', 'brookings.edu', 'axios.com',
+    
+    // Public & International news
+    'france24.com', 'dw.com', 'abc.net.au', 'cbc.ca', 'japantimes.co.jp',
+    'independent.co.uk', 'thehindu.com', 'straitstimes.com', 'themoscowtimes.com',
+    'scmp.com'
+];
+
+// Common patterns that indicate ads or low-quality content
+export const AD_PATTERNS = [
+    'Subscribe to read', 'Sign up now', 'Advertisement', 'Click here to',
+    'Special offer', 'newsletters?\b', '\\d+', '©\\s*\\d{4}',
+    'cookie', 'subscribe', 'sign up', 'privacy policy', 'terms of service'
+];
+
 // Language translations for different UI elements
 export const LANGUAGE_TRANSLATIONS: Record<string, Record<string, string>> = {
     'en': {
@@ -80,5 +124,4 @@ export const LANGUAGE_NAMES: Record<string, string> = {
     'es': 'Español (Spanish)',
     'it': 'Italiano (Italian)',
     'zh': '中文 (Chinese)',
-};// Language translations for different UI elements
-
+};

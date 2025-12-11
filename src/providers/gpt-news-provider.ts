@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { BaseNewsProvider } from './base-news-provider';
 import type { DailyNewsSettings } from '../types';
 import { LanguageUtils } from '../utils';
+import { GPT_MODEL_NAME, OPENAI_API_URL } from '../constants';
 
 export class GptNewsProvider extends BaseNewsProvider {
     private client: OpenAI;
@@ -10,6 +11,7 @@ export class GptNewsProvider extends BaseNewsProvider {
         super(settings);
         this.client = new OpenAI({
             apiKey: this.settings.openaiApiKey,
+            baseURL: OPENAI_API_URL,
             dangerouslyAllowBrowser: true
         });
     }
@@ -73,7 +75,7 @@ Format your summary as bullet points with concrete facts:
                 `What are the latest significant news about "${topic}"?`;
             
             const completion = await this.client.chat.completions.create({
-                model: "gpt-4o",
+                model: GPT_MODEL_NAME,
                 messages: [{
                     "role": "system",
                     "content": systemMessage
