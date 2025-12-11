@@ -185,7 +185,6 @@ Only return the search query string itself, without any explanations or addition
                 generationConfig: {
                     temperature: 0.1,
                     topK: 40,
-                    maxOutputTokens: 1024
                 }
             });
 
@@ -438,7 +437,6 @@ Only return the search query string itself, without any explanations or addition
                     temperature: 0.2,
                     topP: 0.95,
                     topK: 40,
-                    maxOutputTokens: 4096
                 }
             });
             

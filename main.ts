@@ -123,24 +123,50 @@ export default class DailyNewsPlugin extends Plugin {
         const date = new Date().toISOString().split('T')[0];
         const filePath = this.normalizePath(`${this.settings.archiveFolder}/Daily News - ${date}.md`);
         
-        const file = this.app.vault.getAbstractFileByPath(filePath);
-
-        if (file instanceof TFile) {
-            await this.app.workspace.getLeaf().openFile(file);
-        } else {
-            new Notice('Generating today\'s news briefing...');
-            const createdPath = await this.generateDailyNews();
+        try {
+            const fileExists = await this.app.vault.adapter.exists(filePath);
             
-            if (createdPath) {
-                const newFile = this.app.vault.getAbstractFileByPath(createdPath);
-                if (newFile instanceof TFile) {
-                    await this.app.workspace.getLeaf().openFile(newFile);
+            if (fileExists) {
+                this.openNewsFile(filePath);
+            } else {
+                new Notice('Generating today\'s news briefing...');
+                const createdPath = await this.generateDailyNews();
+                
+                if (createdPath) {
+                    setTimeout(() => {
+                        this.openNewsFile(createdPath);
+                    }, 1000);
                 }
             }
+        } catch (error) {
+            console.error('Error opening or creating daily news:', error);
+            new Notice('Unable to open or create daily news');
         }
     }
 
     private normalizePath(path: string): string {
-        return path.replace(/^\/|\/$/g, '');
+        if (path.startsWith('/')) {
+            path = path.substring(1);
+        }
+        path = path.replace(/\/+/g, '/');
+        return path;
+    }
+
+    private openNewsFile(filePath: string) {
+        try {
+            filePath = this.normalizePath(filePath);
+            const file = this.app.vault.getAbstractFileByPath(filePath);
+            
+            if (file instanceof TFile) {
+                this.app.workspace.openLinkText(file.path, '', false)
+                    .catch(() => {
+                        this.app.workspace.getLeaf(false).openFile(file);
+                    });
+            } else {
+                new Notice(`Unable to find news file at: ${filePath}`);
+            }
+        } catch (error) {
+            new Notice('Error opening news file');
+        }
     }
 }
