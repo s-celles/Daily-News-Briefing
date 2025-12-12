@@ -26,7 +26,7 @@ export class DailyNewsSettingTab extends PluginSettingTab {
             .addDropdown(dropdown => dropdown
                 .addOption('google', 'Google (Search + Gemini)')
                 .addOption('sonar', 'Sonar by Perplexity')
-                .addOption('gpt', 'GPT-4o by OpenAI')
+                .addOption('gpt', 'GPT-5-Search-API by OpenAI')
                 .setValue(this.plugin.settings.apiProvider)
                 .onChange(async (value: 'google' | 'sonar' | 'gpt') => {
                     this.plugin.settings.apiProvider = value;
@@ -94,7 +94,7 @@ export class DailyNewsSettingTab extends PluginSettingTab {
             // GPT API settings
             new Setting(containerEl)
                 .setName('OpenAI API key')
-                .setDesc('Your OpenAI API key for GPT-4o')
+                .setDesc('Your OpenAI API key for GPT-5-Search-API')
                 .addText(text => text
                     .setPlaceholder('Enter OpenAI API key')
                     .setValue(this.plugin.settings.openaiApiKey)

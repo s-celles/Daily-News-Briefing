@@ -14,13 +14,13 @@
 
 ## ✨ Key Features
 
--   🤖 **AI-Powered Summaries**: Smart news analysis using Google Gemini, Perplexity Sonar, or GPT-4o.
+-   🤖 **AI-Powered Summaries**: Smart news analysis using Google Gemini, Perplexity Sonar, or GPT-5-Search-API.
 -   📅 **Auto-Generated Daily Briefings**: Wake up to fresh news in your vault.
 -   🎯 **Custom Topics**: Track exactly what interests you.
 -   🌍 **Multi-Language Support**: News in English, French, German, Spanish, and Italian.
 -   📱 **One-Click Access**: Sidebar button for instant news generation.
 -   📊 **Beautiful Formatting**: Clean, readable summaries with sources.
--   ⚡ **Three API Options**: Simple setups for Perplexity and GPT-4o, or advanced configuration for Google.
+-   ⚡ **Three API Options**: Simple setups for Perplexity and GPT-5-Search-API, or advanced configuration for Google.
 
 ---
 
@@ -40,7 +40,7 @@ You have three options. **We recommend Perplexity for beginners:**
 | Provider | Pros | Cons | Best For |
 | --- | --- | --- | --- |
 | **Perplexity Sonar** ⭐ | • Only 1 API key needed<br>• Simple setup<br>• Great results | • Paid service only | Beginners, simple setup |
-| **GPT-4o** | • Only 1 API key needed<br>• Simple setup<br>• High-quality summaries | • Paid service only | Users who want top-tier AI |
+| **GPT-5-Search-API** | • Only 1 API key needed<br>• Simple setup<br>• High-quality summaries | • Paid service only | Users who want top-tier AI |
 | **Google APIs** | • Free tier available<br>• More customization<br>• Advanced filtering | • 3 API keys required<br>• Complex setup | Power users, free option |
 
 ---
@@ -57,14 +57,14 @@ You have three options. **We recommend Perplexity for beginners:**
     *   Choose **"Sonar by Perplexity"** as API Provider.
     *   Paste your API key in the **"Sonar API key"** field.
 
-### Option B: GPT-4o
+### Option B: GPT-5-Search-API
 
-**Why choose GPT-4o?** Simple setup with one API key, and state-of-the-art summarization.
+**Why choose GPT-5-Search-API?** Simple setup with one API key, and state-of-the-art summarization.
 
 1.  **Get your API key:** Visit [OpenAI API](https://platform.openai.com/api-keys).
 2.  **Configure in plugin:**
     *   Open plugin settings.
-    *   Choose **"GPT-4o by OpenAI"** as API Provider.
+    *   Choose **"GPT-5-Search-API by OpenAI"** as API Provider.
     *   Paste your API key in the **"OpenAI API key"** field.
 
 ### Option C: Google APIs (Free Option)
@@ -145,7 +145,7 @@ The sidebar button is smart:
 
 ### "API Error" messages
 
--   **For Perplexity/GPT-4o**: Verify your API key and that your account has sufficient credits.
+-   **For Perplexity/GPT-5-Search-API**: Verify your API key and that your account has sufficient credits.
 -   **For Google**: Ensure all 3 API keys are valid and check your API quotas/billing.
 
 ### Plugin not working after update
@@ -196,15 +196,20 @@ MIT License - Use freely and modify as needed!
 
 ## 📋 Changelog
 
-### v1.7.5
-- Fix issues
-    - Replace gemini-2.0-flash with gemini-2.5-flash
-    - Enable GPT option
-    - Update settings
+### v1.7.6
+- Fix OpenAI issues
+    - Update model to gpt-5-search-api
+    - Fix openai base url error
 
 ### Previous Versions
 <details>
 <summary>Click to view changelog history</summary>
+
+**1.7.5**
+- Fix issues
+    - Replace gemini-2.0-flash with gemini-2.5-flash
+    - Enable GPT option
+    - Update settings
 
 **1.7.4**
 - Reduce token consumption for Gemini API due to Google new policy for free tier

@@ -17,7 +17,7 @@ export class GptNewsProvider extends BaseNewsProvider {
     }
 
     getProviderName(): string {
-        return 'GPT-4o by OpenAI';
+        return 'GPT-5-Search-API by OpenAI';
     }
 
     validateConfiguration(): boolean {
@@ -76,6 +76,7 @@ Format your summary as bullet points with concrete facts:
             
             const completion = await this.client.chat.completions.create({
                 model: GPT_MODEL_NAME,
+                web_search_options: {},
                 messages: [{
                     "role": "system",
                     "content": systemMessage

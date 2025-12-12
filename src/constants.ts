@@ -1,10 +1,10 @@
 // API and Model Constants
 export const GEMINI_MODEL_NAME = "gemini-2.5-flash";
-export const GPT_MODEL_NAME = "gpt-4o";
+export const GPT_MODEL_NAME = "gpt-5-search-api";
 export const PERPLEXITY_MODEL_NAME = "sonar";
 export const GOOGLE_API_URL = "https://www.googleapis.com/customsearch/v1";
 export const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
-export const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
+export const OPENAI_API_URL = "https://api.openai.com/v1";
 
 // List of high-quality news sources
 export const QUALITY_NEWS_SOURCES = [
