@@ -82,6 +82,11 @@ export class GoogleNewsProvider extends BaseNewsProvider {
         
         // Fetch results for each query type in parallel
         await Promise.all(Object.entries(queries).map(async ([queryType, queryString]) => {
+            // Skip if we already have enough results
+            if (allNews.length >= this.settings.maxSearchResults) {
+                return;
+            }
+            
             try {
                 const results = await this.fetchNewsFromGoogle(
                     queryString, 
