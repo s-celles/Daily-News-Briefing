@@ -441,7 +441,7 @@ Only return the search query string itself, without any explanations or addition
             });
             
             const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('AI summary timed out')), 30000)
+                setTimeout(() => reject(new Error('AI summary timed out')), 120000)
             );
             
             const resultPromise = model.generateContent(prompt);
