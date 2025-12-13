@@ -196,14 +196,19 @@ MIT License - Use freely and modify as needed!
 
 ## 📋 Changelog
 
-### v1.7.6
-- Fix OpenAI issues
-    - Update model to gpt-5-search-api
-    - Fix openai base url error
+### v1.7.7
+- Fix Google issues
+    - Extend api timeout limit
+    - Improve news number limit for custom search
 
 ### Previous Versions
 <details>
 <summary>Click to view changelog history</summary>
+
+**1.7.6**
+- Fix OpenAI issues
+    - Update model to gpt-5-search-api
+    - Fix openai base url error
 
 **1.7.5**
 - Fix issues
