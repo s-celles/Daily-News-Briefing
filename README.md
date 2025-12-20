@@ -207,19 +207,20 @@ MIT License - Use freely and modify as needed!
 
 ## 📋 Changelog
 
-### v1.7.8
+### v1.8.0
 - Refactor provider architecture
     - Separated providers into `agentic-search` and `search-then-summarize` categories.
     - This improves code organization and makes it easier to add new providers in the future.
-
-### v1.7.7
-- Fix Google issues
-    - Extend api timeout limit
-    - Improve news number limit for custom search
+    - Add migration support.
 
 ### Previous Versions
 <details>
 <summary>Click to view changelog history</summary>
+
+**1.7.7**
+- Fix Google issues
+    - Extend api timeout limit
+    - Improve news number limit for custom search
 
 **1.7.6**
 - Fix OpenAI issues
