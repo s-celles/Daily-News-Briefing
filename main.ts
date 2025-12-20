@@ -43,6 +43,13 @@ export default class DailyNewsPlugin extends Plugin {
 
     async loadSettings() {
         this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+
+        // Migration logic for old provider values
+        const oldProvider = this.settings.apiProvider as any;
+        if (oldProvider === 'google') {
+            this.settings.apiProvider = 'google-gemini' ;
+            await this. saveData(this. settings); // Save the migrated settings
+        }
     }
 
     async saveSettings() {
