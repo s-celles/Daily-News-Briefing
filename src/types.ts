@@ -1,6 +1,6 @@
 export interface DailyNewsSettings {
     // API provider selection
-    apiProvider: 'google' | 'sonar' | 'gpt';
+    apiProvider: 'google-gemini' | 'google-gpt' | 'sonar' | 'gpt';
 
     // Google API settings
     googleSearchApiKey: string;
@@ -58,7 +58,7 @@ export interface DailyNewsSettings {
 
 export const DEFAULT_SETTINGS: DailyNewsSettings = {
     // API provider selection
-    apiProvider: 'google', // Default to Google for backward compatibility
+    apiProvider: 'google-gemini', // Default to Google for backward compatibility
 
     // Google API settings
     googleSearchApiKey: '',
@@ -95,7 +95,7 @@ export const DEFAULT_SETTINGS: DailyNewsSettings = {
     includeDate: true,
     includeTime: true,
     includeTopics: true,
-    includeTags: true,
+includeTags: true,
     includeLanguage: false,
     includeApiProvider: false,
     includeProcessingTime: false,

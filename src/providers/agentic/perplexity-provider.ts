@@ -1,8 +1,8 @@
 import { requestUrl } from 'obsidian';
-import { BaseNewsProvider } from './base-news-provider';
-import type { DailyNewsSettings } from '../types';
-import { LanguageUtils } from '../utils';
-import { PERPLEXITY_API_URL, PERPLEXITY_MODEL_NAME } from '../constants';
+import { BaseNewsProvider } from '../base-news-provider';
+import type { DailyNewsSettings } from '../../types';
+import { LanguageUtils } from '../../utils';
+import { PERPLEXITY_API_URL, PERPLEXITY_MODEL_NAME } from '../../constants';
 
 export class PerplexityNewsProvider extends BaseNewsProvider {
     constructor(settings: DailyNewsSettings) {
@@ -90,7 +90,7 @@ export class PerplexityNewsProvider extends BaseNewsProvider {
         3. Use specific dates rather than relative time references
         4. Prioritize news with specific details (numbers, names, quotes)
         5. Only return the news - do not include any meta-narratives, explanations, or instructions. 
-        6. If content lacks substance, state "${LanguageUtils.getTranslation('limitedNews', this.settings.language)} ${topic}"`;
+        6. If content lacks substance, state "${LanguageUtils.getTranslation('limitedNews', this.settings.language)}" ${topic}`;
 
         // Add format-specific instructions for Sonar
         if (format === 'detailed') {

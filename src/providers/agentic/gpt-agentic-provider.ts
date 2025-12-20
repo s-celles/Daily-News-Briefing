@@ -1,10 +1,10 @@
 import OpenAI from "openai";
-import { BaseNewsProvider } from './base-news-provider';
-import type { DailyNewsSettings } from '../types';
-import { LanguageUtils } from '../utils';
-import { GPT_MODEL_NAME, OPENAI_API_URL } from '../constants';
+import { BaseNewsProvider } from '../base-news-provider';
+import type { DailyNewsSettings } from '../../types';
+import { LanguageUtils } from '../../utils';
+import { GPT_MODEL_NAME, OPENAI_API_URL } from '../../constants';
 
-export class GptNewsProvider extends BaseNewsProvider {
+export class GptAgenticProvider extends BaseNewsProvider {
     private client: OpenAI;
 
     constructor(settings: DailyNewsSettings) {
@@ -17,12 +17,13 @@ export class GptNewsProvider extends BaseNewsProvider {
     }
 
     getProviderName(): string {
-        return 'GPT-5-Search-API by OpenAI';
+        return 'GPT (Agentic Search)';
     }
 
     validateConfiguration(): boolean {
         return !!this.settings.openaiApiKey;
     }
+
 
     async fetchAndSummarizeNews(topic: string): Promise<string> {
         try {

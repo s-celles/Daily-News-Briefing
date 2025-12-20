@@ -1,57 +1,27 @@
 import { requestUrl } from 'obsidian';
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { BaseNewsProvider } from './base-news-provider';
-import type { NewsItem, SearchItem, SearchResponse, DailyNewsSettings } from '../types';
-import { LanguageUtils } from '../utils';
-import { GEMINI_MODEL_NAME, GOOGLE_API_URL } from '../constants';
+import type { NewsItem, SearchResponse, DailyNewsSettings } from '../../types';
+import { GEMINI_MODEL_NAME, GOOGLE_API_URL } from '../../constants';
+import type { NewsRetriever } from './base-retriever';
 
-export class GoogleNewsProvider extends BaseNewsProvider {
-    constructor(settings: DailyNewsSettings) {
-        super(settings);
-    }
-
+export class GoogleSearchRetriever implements NewsRetriever {
+    private settings: DailyNewsSettings;
     private searchCache: Map<string, string> = new Map();
 
-    getProviderName(): string {
-        return 'Google (Search + Gemini)';
+    constructor(settings: DailyNewsSettings) {
+        this.settings = settings;
     }
 
-    validateConfiguration(): boolean {
-        return !!(this.settings.googleSearchApiKey && 
-                 this.settings.googleSearchEngineId && 
-                 this.settings.geminiApiKey);
-    }
-
-    async fetchAndSummarizeNews(topic: string): Promise<string> {
-        try {
-            // Step 1: Fetch news items
-            const newsItems = await this.fetchNews(topic);
-            
-            if (newsItems.length === 0) {
-                return `${LanguageUtils.getTranslation('noRecentNews', this.settings.language)} ${topic}.`;
-            }
-
-            // Step 2: Generate summary using Gemini
-            return await this.generateSummary(newsItems, topic);
-        } catch (error) {
-            console.error(`Google provider error for ${topic}:`, error);
-            return `Error retrieving news for ${topic}. ${error.message}`;
-        }
-    }
-
-    private async fetchNews(topic: string): Promise<NewsItem[]> {
+    async fetchNews(topic: string): Promise<NewsItem[]> {
         const startTime = Date.now();
         
-        // Get appropriate date range parameter
         const dateRangeParam = this.settings.dateRange.match(/^[dw]\d+$/) ? 
             this.settings.dateRange : 'd3';
             
         const allNews: NewsItem[] = [];
         
-        // Define search queries
         let queries: {[key: string]: string} = {};
         
-        // Use AI to generate the primary query if enabled
         if (this.settings.useAIForQueries && this.settings.geminiApiKey) {
             try {
                 const aiQuery = await this.generateAISearchQuery(topic);
@@ -63,7 +33,6 @@ export class GoogleNewsProvider extends BaseNewsProvider {
             }
         }
         
-        // Always include multiple query variations
         queries = {
             ...queries,
             standard: this.buildOptimizedQuery(topic),
@@ -73,16 +42,12 @@ export class GoogleNewsProvider extends BaseNewsProvider {
             simple: `${topic} news`
         };
         
-        // Maximum results per query
         const maxResultsPerQuery = Math.min(10, this.settings.maxSearchResults / Object.keys(queries).length);
         
-        // Track API call successes and failures
         let successfulQueries = 0;
         let failedQueries = 0;
         
-        // Fetch results for each query type in parallel
         await Promise.all(Object.entries(queries).map(async ([queryType, queryString]) => {
-            // Skip if we already have enough results
             if (allNews.length >= this.settings.maxSearchResults) {
                 return;
             }
@@ -94,7 +59,6 @@ export class GoogleNewsProvider extends BaseNewsProvider {
                     Math.ceil(maxResultsPerQuery)
                 );
                 
-                // Add results while avoiding duplicates
                 for (const item of results) {
                     if (!allNews.some(existing => existing.link === item.link)) {
                         allNews.push(item);
@@ -110,12 +74,10 @@ export class GoogleNewsProvider extends BaseNewsProvider {
             }
         }));
         
-        // If all queries failed or no news items were found, throw an error
         if (failedQueries === Object.keys(queries).length || (allNews.length === 0 && successfulQueries === 0)) {
             throw new Error(`Failed to fetch news for ${topic}. All queries failed.`);
         }
         
-        // Use AI to judge and filter news items
         let judgedNews = allNews;
         try {
             if (allNews.length > 0) {
@@ -123,12 +85,11 @@ export class GoogleNewsProvider extends BaseNewsProvider {
             }
         } catch (error) {
             console.error(`Error while judging news with AI: ${error.message}`);
-            // Use original list if AI judging fails, limited to the requested number of results
             judgedNews = allNews.slice(0, this.settings.resultsPerTopic);
         }
         
         const elapsedTime = (Date.now() - startTime) / 1000;
-        console.log(`Google provider: Fetched ${allNews.length} total items, AI selected ${judgedNews.length} items for ${topic} in ${elapsedTime}s`);
+        console.log(`Google Search: Fetched ${allNews.length} total items, AI selected ${judgedNews.length} items for ${topic} in ${elapsedTime}s`);
         
         return judgedNews;
     }
@@ -410,103 +371,5 @@ Only return the search query string itself, without any explanations or addition
             .replace(/\S+@\S+\.\S+/g, '')
             .replace(/\s+/g, ' ')
             .trim();
-    }
-
-    private async generateSummary(newsItems: NewsItem[], topic: string): Promise<string> {
-        if (!newsItems.length) {
-            return `No recent news found for ${topic}.`;
-        }
-
-        const enhancedNewsText = newsItems.map(item => {
-            const domain = new URL(item.link).hostname.replace('www.', '');
-            
-            return `=== NEWS ITEM ===\n` +
-                `Title: ${item.title}\n` +
-                `Source: ${item.source || domain}\n` +
-                `URL: ${item.link}\n` +
-                `Published: ${item.publishedTime || 'Unknown'}\n` +
-                `Content: ${item.snippet}\n`;
-        }).join('\n\n');
-
-        const prompt = this.getAIPrompt(enhancedNewsText, topic, this.settings.outputFormat);
-
-        try {
-            if (!this.settings.geminiApiKey) {
-                throw new Error('Missing Gemini API key');
-            }
-            
-            const genAI = new GoogleGenerativeAI(this.settings.geminiApiKey);
-            const model = genAI.getGenerativeModel({ 
-                model: GEMINI_MODEL_NAME,
-                generationConfig: {
-                    temperature: 0.2,
-                    topP: 0.95,
-                    topK: 40,
-                }
-            });
-            
-            const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('AI summary timed out')), 120000)
-            );
-            
-            const resultPromise = model.generateContent(prompt);
-            const result = await Promise.race([resultPromise, timeoutPromise]) as any;
-            
-            if (!result || !result.response) {
-                throw new Error('Invalid AI response structure');
-            }
-            
-            return result.response.text();
-        } catch (error) {
-            console.error('Failed to generate summary:', error);
-            return `Error generating summary for ${topic}. ${error.message || 'Unknown error'}\n\nCheck the developer console for more information.`;
-        }
-    }
-
-    private getAIPrompt(newsText: string, topic: string, format: 'detailed' | 'concise'): string {
-        if (this.settings.useCustomPrompt && this.settings.customPrompt && newsText) {
-            return this.settings.customPrompt.replace('{{NEWS_TEXT}}', newsText);
-        }
-        
-        const languageInstruction = this.settings.language !== 'en' ? 
-            ` Translate all content into the language with ISO 639-1 code "${this.settings.language}". The source news may be in English but your response should be entirely in the target language.` : '';
-        
-        let basePrompt = `Analyze these news articles about ${topic} and provide a substantive summary.${languageInstruction}
-
-        ${newsText}
-
-        KEY REQUIREMENTS:
-        1. Focus on concrete developments, facts, and data
-        2. For each news item include the SOURCE in markdown format: [Source](URL)
-        3. Use specific dates rather than relative time references
-        4. Prioritize news with specific details (numbers, names, quotes)
-        5. If content lacks substance, state "${LanguageUtils.getTranslation('limitedNews', this.settings.language)} ${topic}"`;
-
-        if (format === 'detailed') {
-            let formattedPrompt = basePrompt + `
-
-Format your summary with these sections:
-
-### ${LanguageUtils.getTranslation('keyDevelopments', this.settings.language)}
-- **[Clear headline with key detail]**: Concrete facts with specific details. [Source](URL)
-- **[Clear headline with key detail]**: Concrete facts with specific details. [Source](URL)`;
-
-            if (this.settings.enableAnalysisContext) {
-                formattedPrompt += `
-
-### ${LanguageUtils.getTranslation('analysisContext', this.settings.language)}
-[Provide context, implications, or background for the most significant developments]`;
-            }
-            
-            return formattedPrompt;
-        } else {
-            return basePrompt + `
-
-Format your summary as bullet points with concrete facts:
-
-- **[Clear headline with key detail]**: Concrete facts with specific details. [Source](URL)
-- **[Clear headline with key detail]**: Concrete facts with specific details. [Source](URL)
-- **[Clear headline with key detail]**: Concrete facts with specific details. [Source](URL)`;
-        }
     }
 }

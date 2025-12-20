@@ -16,30 +16,30 @@ export class DailyNewsSettingTab extends PluginSettingTab {
         const {containerEl} = this;
         containerEl.empty();
 
-        // API Provider Configuration section
-        containerEl.createEl('h2', {text: 'API Provider'});
-        containerEl.createEl('p', {text: 'Choose which API provider to use for fetching news.'});
+        containerEl.createEl('h2', {text: 'News Pipeline Configuration'});
+        containerEl.createEl('p', {text: 'Choose your news retrieval and summarization pipeline.'});
 
         new Setting(containerEl)
-            .setName('API Provider')
-            .setDesc('Select your preferred API provider')
+            .setName('News Pipeline')
+            .setDesc('Select your preferred pipeline')
             .addDropdown(dropdown => dropdown
-                .addOption('google', 'Google (Search + Gemini)')
-                .addOption('sonar', 'Sonar by Perplexity')
-                .addOption('gpt', 'GPT-5-Search-API by OpenAI')
+                .addOption('google-gemini', 'Google Search + Gemini Summarizer')
+                .addOption('google-gpt', 'Google Search + GPT Summarizer')
+                .addOption('sonar', 'Perplexity (Agentic Search)')
+                .addOption('gpt', 'OpenAI GPT (Agentic Search)')
                 .setValue(this.plugin.settings.apiProvider)
-                .onChange(async (value: 'google' | 'sonar' | 'gpt') => {
+                .onChange(async (value: 'google-gemini' | 'google-gpt' | 'sonar' | 'gpt') => {
                     this.plugin.settings.apiProvider = value;
                     await this.plugin.saveSettings();
-                    this.display(); // Refresh to show/hide appropriate fields
+                    this.display();
                 }));
 
-        // API Configuration section - show appropriate fields based on provider
         containerEl.createEl('h2', {text: 'API Configuration'});
-        containerEl.createEl('p', {text: 'API keys are required for fetching and summarizing news.'});
+        containerEl.createEl('p', {text: 'API keys are required for your selected pipeline.'});
 
-        if (this.plugin.settings.apiProvider === 'google') {
-            // Google API settings
+        const provider = this.plugin.settings.apiProvider;
+
+        if (provider.startsWith('google')) {
             new Setting(containerEl)
                 .setName('Google Search API key')
                 .setDesc('Your Google Custom Search API key')
@@ -61,7 +61,9 @@ export class DailyNewsSettingTab extends PluginSettingTab {
                         this.plugin.settings.googleSearchEngineId = value;
                         await this.plugin.saveSettings();
                     }));
+        }
 
+        if (provider === 'google-gemini') {
             new Setting(containerEl)
                 .setName('Gemini API key')
                 .setDesc('Your Google Gemini API key for news summarization')
@@ -72,34 +74,30 @@ export class DailyNewsSettingTab extends PluginSettingTab {
                         this.plugin.settings.geminiApiKey = value;
                         await this.plugin.saveSettings();
                     }));
-        } else if (this.plugin.settings.apiProvider === 'sonar') {
-            // Sonar API settings
-            new Setting(containerEl)
-                .setName('Sonar API key')
-                .setDesc('Your Perplexity Sonar API key (combines search and summarization)')
-                .addText(text => text
-                    .setPlaceholder('Enter Sonar API key')
-                    .setValue(this.plugin.settings.perplexityApiKey)
-                    .onChange(async (value) => {
-                        this.plugin.settings.perplexityApiKey = value;
-                        await this.plugin.saveSettings();
-                    }));
-            
-            // Add message about Sonar API advantages
-            containerEl.createEl('div', {
-                text: 'Sonar API combines search and summarization in one step, providing a simpler setup with only one API key.',
-                cls: 'setting-item-description'
-            });
-        } else {
-            // GPT API settings
+        }
+
+        if (provider === 'google-gpt' || provider === 'gpt') {
             new Setting(containerEl)
                 .setName('OpenAI API key')
-                .setDesc('Your OpenAI API key for GPT-5-Search-API')
+                .setDesc('Your OpenAI API key')
                 .addText(text => text
                     .setPlaceholder('Enter OpenAI API key')
                     .setValue(this.plugin.settings.openaiApiKey)
                     .onChange(async (value) => {
                         this.plugin.settings.openaiApiKey = value;
+                        await this.plugin.saveSettings();
+                    }));
+        }
+
+        if (provider === 'sonar') {
+            new Setting(containerEl)
+                .setName('Perplexity API key')
+                .setDesc('Your Perplexity API key')
+                .addText(text => text
+                    .setPlaceholder('Enter Perplexity API key')
+                    .setValue(this.plugin.settings.perplexityApiKey)
+                    .onChange(async (value) => {
+                        this.plugin.settings.perplexityApiKey = value;
                         await this.plugin.saveSettings();
                     }));
         }
@@ -111,7 +109,6 @@ export class DailyNewsSettingTab extends PluginSettingTab {
             .setName('Language')
             .setDesc('Language for news content and UI elements')
             .addDropdown(dropdown => {
-                // Add all supported languages to the dropdown
                 Object.entries(LANGUAGE_NAMES).forEach(([code, name]) => {
                     dropdown.addOption(code, name);
                 });
@@ -157,8 +154,7 @@ export class DailyNewsSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        if (this.plugin.settings.apiProvider === 'google') {
-            // Search Configuration section
+        if (provider.startsWith('google')) {
             containerEl.createEl('h2', {text: 'Search Configuration'});
             
             new Setting(containerEl)
@@ -186,31 +182,27 @@ export class DailyNewsSettingTab extends PluginSettingTab {
                     }));
         }
 
-        // Output Settings section
-        if (this.plugin.settings.apiProvider === 'google' || this.plugin.settings.apiProvider === 'gpt') {
-            new Setting(containerEl)
-                .setName('Output style')
-                .setDesc('Choose level of detail for news summaries')
-                .addDropdown(dropdown => dropdown
-                    .addOption('detailed', 'Detailed - with analysis')
-                    .addOption('concise', 'Concise - just facts')
-                    .setValue(this.plugin.settings.outputFormat)
-                    .onChange(async (value: 'detailed' | 'concise') => {
-                        this.plugin.settings.outputFormat = value;
-                        await this.plugin.saveSettings();
-                    }));
+        new Setting(containerEl)
+            .setName('Output style')
+            .setDesc('Choose level of detail for news summaries')
+            .addDropdown(dropdown => dropdown
+                .addOption('detailed', 'Detailed - with analysis')
+                .addOption('concise', 'Concise - just facts')
+                .setValue(this.plugin.settings.outputFormat)
+                .onChange(async (value: 'detailed' | 'concise') => {
+                    this.plugin.settings.outputFormat = value;
+                    await this.plugin.saveSettings();
+                }));
                     
-            // Add option to enable analysis & context
-            new Setting(containerEl)
-                .setName('Enable analysis & context')
-                .setDesc('Include analytical section in detailed news summaries')
-                .addToggle(toggle => toggle
-                    .setValue(this.plugin.settings.enableAnalysisContext)
-                    .onChange(async (value) => {
-                        this.plugin.settings.enableAnalysisContext = value;
-                        await this.plugin.saveSettings();
-                    }));
-        }
+        new Setting(containerEl)
+            .setName('Enable analysis & context')
+            .setDesc('Include analytical section in detailed news summaries')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.enableAnalysisContext)
+                .onChange(async (value) => {
+                    this.plugin.settings.enableAnalysisContext = value;
+                    await this.plugin.saveSettings();
+                }));
                 
         new Setting(containerEl)
             .setName('Enable notifications')
@@ -222,127 +214,8 @@ export class DailyNewsSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        // Metadata Configuration section
-        containerEl.createEl('h2', {text: 'Metadata Configuration'});
-
-        new Setting(containerEl)
-            .setName('Enable metadata')
-            .setDesc('Add YAML frontmatter with metadata to generated news files')
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.enableMetadata)
-                .onChange(async (value) => {
-                    this.plugin.settings.enableMetadata = value;
-                    await this.plugin.saveSettings();
-                    this.display(); // Refresh to show/hide metadata options
-                }));
-        
-        containerEl.createEl('p', {text: 'Configure which metadata to include in the YAML frontmatter of generated news files.'});
-
-        if (this.plugin.settings.enableMetadata) {
-            // Date metadata
-            new Setting(containerEl)
-                .setName('Include date')
-                .setDesc('Date when the news was generated (YYYY-MM-DD)')
-                .addToggle(toggle => toggle
-                    .setValue(this.plugin.settings.includeDate)
-                    .onChange(async (value) => {
-                        this.plugin.settings.includeDate = value;
-                        await this.plugin.saveSettings();
-                    }));
-
-            // Time metadata
-            new Setting(containerEl)
-                .setName('Include time')
-                .setDesc('Time when the news was generated')
-                .addToggle(toggle => toggle
-                    .setValue(this.plugin.settings.includeTime)
-                    .onChange(async (value) => {
-                        this.plugin.settings.includeTime = value;
-                        await this.plugin.saveSettings();
-                    }));
-
-            // Topics metadata
-            new Setting(containerEl)
-                .setName('Include topics')
-                .setDesc('List of topics covered in this briefing')
-                .addToggle(toggle => toggle
-                    .setValue(this.plugin.settings.includeTopics)
-                    .onChange(async (value) => {
-                        this.plugin.settings.includeTopics = value;
-                        await this.plugin.saveSettings();
-                    }));
-
-            // Tags metadata
-            new Setting(containerEl)
-                .setName('Include tags')
-                .setDesc('Auto-generated tags based on topics and settings')
-                .addToggle(toggle => toggle
-                    .setValue(this.plugin.settings.includeTags)
-                    .onChange(async (value) => {
-                        this.plugin.settings.includeTags = value;
-                        await this.plugin.saveSettings();
-                    }));
-
-            // Language metadata
-            new Setting(containerEl)
-                .setName('Include language')
-                .setDesc('Language code used for content generation')
-                .addToggle(toggle => toggle
-                    .setValue(this.plugin.settings.includeLanguage)
-                    .onChange(async (value) => {
-                        this.plugin.settings.includeLanguage = value;
-                        await this.plugin.saveSettings();
-                    }));
-
-            // API Provider metadata
-            new Setting(containerEl)
-                .setName('Include API provider')
-                .setDesc('Which API provider was used')
-                .addToggle(toggle => toggle
-                    .setValue(this.plugin.settings.includeApiProvider)
-                    .onChange(async (value) => {
-                        this.plugin.settings.includeApiProvider = value;
-                        await this.plugin.saveSettings();
-                    }));
-
-            // Processing time metadata
-            new Setting(containerEl)
-                .setName('Include processing time')
-                .setDesc('Time taken to generate the news')
-                .addToggle(toggle => toggle
-                    .setValue(this.plugin.settings.includeProcessingTime)
-                    .onChange(async (value) => {
-                        this.plugin.settings.includeProcessingTime = value;
-                        await this.plugin.saveSettings();
-                    }));
-
-            // Source metadata
-            new Setting(containerEl)
-                .setName('Include source')
-                .setDesc('Data source information')
-                .addToggle(toggle => toggle
-                    .setValue(this.plugin.settings.includeSource)
-                    .onChange(async (value) => {
-                        this.plugin.settings.includeSource = value;
-                        await this.plugin.saveSettings();
-                    }));
-
-            // Output format metadata
-            new Setting(containerEl)
-                .setName('Include output format')
-                .setDesc('Format used for the news content (detailed/concise)')
-                .addToggle(toggle => toggle
-                    .setValue(this.plugin.settings.includeOutputFormat)
-                    .onChange(async (value) => {
-                        this.plugin.settings.includeOutputFormat = value;
-                        await this.plugin.saveSettings();
-                    }));
-        }
-
-        // Advanced Configuration section
         containerEl.createEl('h2', {text: 'Advanced Configuration'});
 
-        // Advanced toggle
         new Setting(containerEl)
             .setName('Show advanced configuration')
             .addToggle(toggle => toggle
@@ -352,13 +225,8 @@ export class DailyNewsSettingTab extends PluginSettingTab {
                     this.display();
                 }));
 
-        // Advanced Settings
         if (this.showAdvanced) {
-
-            // Additional advanced settings for API-specific settings
-            if (this.plugin.settings.apiProvider === 'google') {
-
-                // Add AI Query Generation setting in Google
+            if (provider.startsWith('google')) {
                 new Setting(containerEl)
                 .setName('Use AI for search queries')
                 .setDesc('Use AI to generate optimized search queries (uses Gemini API)')
@@ -388,7 +256,7 @@ export class DailyNewsSettingTab extends PluginSettingTab {
                         .onChange(async (value) => {
                             this.plugin.settings.useAIJudge = value;
                             await this.plugin.saveSettings();
-                            this.display(); // Refresh to show/hide custom prompt
+                            this.display(); 
                         }));
                 
                 if (this.plugin.settings.useAIJudge) {
@@ -405,7 +273,6 @@ export class DailyNewsSettingTab extends PluginSettingTab {
                 }
             }
             
-            // Custom prompt setting - available for all providers
             new Setting(containerEl)
                 .setName('Use custom AI prompt')
                 .setDesc('Enable to use your own custom AI prompt for summarization')
@@ -414,22 +281,22 @@ export class DailyNewsSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.useCustomPrompt = value;
                         await this.plugin.saveSettings();
-                        this.display(); // Refresh to show/hide custom prompt area
+                        this.display();
                     }));
                     
             if (this.plugin.settings.useCustomPrompt) {
-                let customPromptDesc = 'Your custom prompt for the AI summarization.';
-                if (this.plugin.settings.apiProvider === 'google') {
+                let customPromptDesc = 'Your custom prompt for the AI.';
+                if (provider.startsWith('google')) {
                     customPromptDesc += ' (use {{NEWS_TEXT}} as placeholder for the news content)';
                 } else {
-                    customPromptDesc += ' For providers with search, this is used as a search instruction (e.g. "What is the latest news on {{TOPIC}}?")';
+                    customPromptDesc += ' For agentic providers, this is used as the main instruction (e.g. "What is the latest news on {{TOPIC}}?")';
                 }
                 
                 new Setting(containerEl)
                     .setName('Custom AI prompt')
                     .setDesc(customPromptDesc)
                     .addTextArea(text => text
-                        .setPlaceholder('You are a professional news analyst...\n\n{{NEWS_TEXT}}\n\nPlease summarize...')
+                        .setPlaceholder('You are a professional news analyst...')
                         .setValue(this.plugin.settings.customPrompt)
                         .onChange(async (value) => {
                             this.plugin.settings.customPrompt = value;
@@ -437,7 +304,6 @@ export class DailyNewsSettingTab extends PluginSettingTab {
                         }));
             }
                     
-            // Manual trigger button
             new Setting(containerEl)
                 .setName('Generate news now')
                 .setDesc('Manually trigger news generation')

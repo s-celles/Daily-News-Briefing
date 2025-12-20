@@ -33,53 +33,64 @@
 3.  Click **Browse** → Search for **"Daily News Briefing"**.
 4.  Click **Install** → **Enable**.
 
-### Step 2: Choose Your AI Provider
+### Step 2: Choose Your News Pipeline
 
-You have three options. **We recommend Perplexity for beginners:**
+You have four options for your news generation pipeline. **We recommend Perplexity for beginners.**
 
-| Provider | Pros | Cons | Best For |
+| Pipeline | Pros | Cons | Best For |
 | --- | --- | --- | --- |
-| **Perplexity Sonar** ⭐ | • Only 1 API key needed<br>• Simple setup<br>• Great results | • Paid service only | Beginners, simple setup |
-| **GPT-5-Search-API** | • Only 1 API key needed<br>• Simple setup<br>• High-quality summaries | • Paid service only | Users who want top-tier AI |
-| **Google APIs** | • Free tier available<br>• More customization<br>• Advanced filtering | • 3 API keys required<br>• Complex setup | Power users, free option |
+| **Perplexity (Agentic)** ⭐ | • Easiest setup (1 key)<br>• Great results | • Paid service only | Beginners, simple setup |
+| **GPT (Agentic)** | • Simple setup (1 key)<br>• High-quality summaries | • Paid service only | Users who want top-tier AI |
+| **Google Search + Gemini** | • Free tier available<br>• Advanced filtering | • Most complex setup (3 keys) | Power users, free option |
+| **Google Search + GPT** | • Mix-and-match<br>• Advanced filtering | • Complex setup (3 keys) | Users who prefer Google's search with GPT's summarization |
 
 ---
 
 ## 🔑 API Setup Guides
 
-### Option A: Perplexity Sonar (Recommended)
+### Option A: Perplexity (Agentic Search) - Recommended
 
-**Why choose Perplexity?** Simple setup with just one API key, excellent results out of the box.
+**Why?** The simplest setup with just one API key, providing excellent results out of the box.
 
-1.  **Get your API key:** Visit [Perplexity API](https://perplexity.ai/).
-2.  **Configure in plugin:**
-    *   Open plugin settings.
-    *   Choose **"Sonar by Perplexity"** as API Provider.
-    *   Paste your API key in the **"Sonar API key"** field.
+1.  **Get API Key:** Visit [Perplexity API](https://perplexity.ai/).
+2.  **Configure in Plugin:**
+    *   Choose **"Perplexity (Agentic Search)"** as your News Pipeline.
+    *   Paste your key in the **"Perplexity API key"** field.
 
-### Option B: GPT-5-Search-API
+### Option B: OpenAI GPT (Agentic Search)
 
-**Why choose GPT-5-Search-API?** Simple setup with one API key, and state-of-the-art summarization.
+**Why?** Simple setup with one API key, using a state-of-the-art AI model for searching and summarizing.
 
-1.  **Get your API key:** Visit [OpenAI API](https://platform.openai.com/api-keys).
-2.  **Configure in plugin:**
-    *   Open plugin settings.
-    *   Choose **"GPT-5-Search-API by OpenAI"** as API Provider.
-    *   Paste your API key in the **"OpenAI API key"** field.
+1.  **Get API Key:** Visit [OpenAI API](https://platform.openai.com/api-keys).
+2.  **Configure in Plugin:**
+    *   Choose **"OpenAI GPT (Agentic Search)"** as your News Pipeline.
+    *   Paste your key in the **"OpenAI API key"** field.
 
-### Option C: Google APIs (Free Option)
+### Option C: Google Search + Gemini Summarizer (Free Option)
 
-**Why choose Google?** A free tier is available, with more advanced customization options.
+**Why?** Access to a free tier and advanced control over search results.
 
-You'll need 3 different keys:
+You need 3 different keys:
+1.  **Google Custom Search API Key (FREE):** Get from [Google Cloud Console](https://console.cloud.google.com/).
+2.  **Google Search Engine ID (FREE):** Create at [Google Programmable Search Engine](https://programmablesearchengine.google.com/controlpanel/all).
+3.  **Gemini API Key (FREE):** Get from [Google AI Studio](https://aistudio.google.com/apikey).
 
-1.  **Google Custom Search API Key (FREE)**: Get it at [Google Cloud Console](https://console.cloud.google.com/).
-2.  **Google Search Engine ID (FREE)**: Create a Search Engine and copy the **Search Engine ID** at [Google Programmable Search Engine](https://programmablesearchengine.google.com/controlpanel/all).
-3.  **Gemini API Key (FREE)**: Get it at [Google AI Studio](https://aistudio.google.com/apikey).
+**Configure in Plugin:**
+*   Choose **"Google Search + Gemini Summarizer"** as your News Pipeline.
+*   Enter all three keys in their respective fields.
 
-**Configure in plugin:**
-- Choose **"Google (Search + Gemini)"** as API Provider.
-- Enter all three keys in their respective fields.
+### Option D: Google Search + GPT Summarizer
+
+**Why?** Combine Google's powerful search and filtering with OpenAI's summarization capabilities.
+
+You need 3 different keys:
+1.  **Google Custom Search API Key (FREE):** See Option C.
+2.  **Google Search Engine ID (FREE):** See Option C.
+3.  **OpenAI API Key:** Get from [OpenAI API](https://platform.openai.com/api-keys).
+
+**Configure in Plugin:**
+*   Choose **"Google Search + GPT Summarizer"** as your News Pipeline.
+*   Enter all three keys in their respective fields.
 
 ---
 
@@ -195,6 +206,11 @@ MIT License - Use freely and modify as needed!
 ---
 
 ## 📋 Changelog
+
+### v1.7.8
+- Refactor provider architecture
+    - Separated providers into `agentic-search` and `search-then-summarize` categories.
+    - This improves code organization and makes it easier to add new providers in the future.
 
 ### v1.7.7
 - Fix Google issues

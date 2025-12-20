@@ -89,7 +89,21 @@ export class MetadataUtils {
         }
 
         if (settings.includeApiProvider) {
-            metadata.apiProvider = settings.apiProvider === 'google' ? 'Google (Search + Gemini)' : 'Sonar by Perplexity';
+            switch (settings.apiProvider) {
+                case 'google-gemini':
+                    metadata.apiProvider = 'Google Search + Gemini Summarizer';
+                    break;
+                case 'google-gpt':
+                    metadata.apiProvider = 'Google Search + GPT Summarizer';
+                    break;
+
+                case 'sonar':
+                    metadata.apiProvider = 'Perplexity (Agentic Search)';
+                    break;
+                case 'gpt':
+                    metadata.apiProvider = 'OpenAI GPT (Agentic Search)';
+                    break;
+            }
         }
 
         if (settings.includeProcessingTime) {
@@ -107,7 +121,20 @@ export class MetadataUtils {
         }
 
         if (settings.includeSource) {
-            metadata.source = settings.apiProvider === 'google' ? 'Google Search + Gemini AI' : 'Perplexity Sonar';
+            switch (settings.apiProvider) {
+                case 'google-gemini':
+                    metadata.source = 'Google Search + Gemini AI';
+                    break;
+                case 'google-gpt':
+                    metadata.source = 'Google Search + OpenAI GPT';
+                    break;
+                case 'sonar':
+                    metadata.source = 'Perplexity Sonar';
+                    break;
+                case 'gpt':
+                    metadata.source = 'OpenAI GPT';
+                    break;
+            }
         }
 
         if (settings.includeOutputFormat) {
