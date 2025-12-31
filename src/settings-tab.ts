@@ -25,10 +25,12 @@ export class DailyNewsSettingTab extends PluginSettingTab {
             .addDropdown(dropdown => dropdown
                 .addOption('google-gemini', 'Google Search + Gemini Summarizer')
                 .addOption('google-gpt', 'Google Search + GPT Summarizer')
+                .addOption('google-grok', 'Google Search + Grok Summarizer')
                 .addOption('sonar', 'Perplexity (Agentic Search)')
                 .addOption('gpt', 'OpenAI GPT (Agentic Search)')
+                .addOption('grok', 'Grok (Agentic Search)')
                 .setValue(this.plugin.settings.apiProvider)
-                .onChange(async (value: 'google-gemini' | 'google-gpt' | 'sonar' | 'gpt') => {
+                .onChange(async (value: 'google-gemini' | 'google-gpt' | 'sonar' | 'gpt' | 'google-grok' | 'grok') => {
                     this.plugin.settings.apiProvider = value;
                     await this.plugin.saveSettings();
                     this.display();
@@ -98,6 +100,19 @@ export class DailyNewsSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.perplexityApiKey)
                     .onChange(async (value) => {
                         this.plugin.settings.perplexityApiKey = value;
+                        await this.plugin.saveSettings();
+                    }));
+        }
+
+        if (provider === 'google-grok' || provider === 'grok') {
+            new Setting(containerEl)
+                .setName('Grok API key')
+                .setDesc('Your Grok API key')
+                .addText(text => text
+                    .setPlaceholder('Enter Grok API key')
+                    .setValue(this.plugin.settings.grokApiKey)
+                    .onChange(async (value) => {
+                        this.plugin.settings.grokApiKey = value;
                         await this.plugin.saveSettings();
                     }));
         }

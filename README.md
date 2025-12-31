@@ -41,8 +41,10 @@ You have four options for your news generation pipeline. **We recommend Perplexi
 | --- | --- | --- | --- |
 | **Perplexity (Agentic)** ⭐ | • Easiest setup (1 key)<br>• Great results | • Paid service only | Beginners, simple setup |
 | **GPT (Agentic)** | • Simple setup (1 key)<br>• High-quality summaries | • Paid service only | Users who want top-tier AI |
+| **Grok (Agentic)** | • Simple setup (1 key)<br>• Fast summaries | • Paid service only | Users who want fast, real-time info |
 | **Google Search + Gemini** | • Free tier available<br>• Advanced filtering | • Most complex setup (3 keys) | Power users, free option |
 | **Google Search + GPT** | • Mix-and-match<br>• Advanced filtering | • Complex setup (3 keys) | Users who prefer Google's search with GPT's summarization |
+| **Google Search + Grok** | • Mix-and-match<br>• Advanced filtering | • Complex setup (3 keys) | Users who prefer Google's search with Grok's summarization |
 
 ---
 
@@ -66,7 +68,16 @@ You have four options for your news generation pipeline. **We recommend Perplexi
     *   Choose **"OpenAI GPT (Agentic Search)"** as your News Pipeline.
     *   Paste your key in the **"OpenAI API key"** field.
 
-### Option C: Google Search + Gemini Summarizer (Free Option)
+### Option C: Grok (Agentic Search)
+
+**Why?** Simple setup with one API key, using a fast AI model for searching and summarizing.
+
+1.  **Get API Key:** Visit [Grok API](https://x.ai/).
+2.  **Configure in Plugin:**
+    *   Choose **"Grok (Agentic Search)"** as your News Pipeline.
+    *   Paste your key in the **"Grok API key"** field.
+
+### Option D: Google Search + Gemini Summarizer (Free Option)
 
 **Why?** Access to a free tier and advanced control over search results.
 
@@ -79,17 +90,30 @@ You need 3 different keys:
 *   Choose **"Google Search + Gemini Summarizer"** as your News Pipeline.
 *   Enter all three keys in their respective fields.
 
-### Option D: Google Search + GPT Summarizer
+### Option E: Google Search + GPT Summarizer
 
 **Why?** Combine Google's powerful search and filtering with OpenAI's summarization capabilities.
 
 You need 3 different keys:
-1.  **Google Custom Search API Key (FREE):** See Option C.
-2.  **Google Search Engine ID (FREE):** See Option C.
+1.  **Google Custom Search API Key (FREE):** See Option D.
+2.  **Google Search Engine ID (FREE):** See Option D.
 3.  **OpenAI API Key:** Get from [OpenAI API](https://platform.openai.com/api-keys).
 
 **Configure in Plugin:**
 *   Choose **"Google Search + GPT Summarizer"** as your News Pipeline.
+*   Enter all three keys in their respective fields.
+
+### Option F: Google Search + Grok Summarizer
+
+**Why?** Combine Google's powerful search and filtering with Grok's summarization capabilities.
+
+You need 3 different keys:
+1.  **Google Custom Search API Key (FREE):** See Option D.
+2.  **Google Search Engine ID (FREE):** See Option D.
+3.  **Grok API Key:** Get from [Grok API](https://x.ai/).
+
+**Configure in Plugin:**
+*   Choose **"Google Search + Grok Summarizer"** as your News Pipeline.
 *   Enter all three keys in their respective fields.
 
 ---

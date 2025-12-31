@@ -3,7 +3,9 @@ import { BaseNewsProvider } from './base-news-provider';
 import { GoogleSearchRetriever } from './retrievers/google-search-retriever';
 import { GeminiSummarizer } from './summarizers/gemini-summarizer';
 import { GptSummarizer } from './summarizers/gpt-summarizer';
+import { GrokSummarizer } from './summarizers/grok-summarizer';
 import { GptAgenticProvider } from './agentic/gpt-agentic-provider';
+import { GrokAgenticProvider } from './agentic/grok-agentic-provider';
 import { PerplexityNewsProvider } from './agentic/perplexity-provider';
 import { SearchSummarizeCoordinator } from './coordinators/search-summarize-coordinator';
 
@@ -24,10 +26,19 @@ export class NewsProviderFactory {
                     new GptSummarizer(settings),
                     'Google Search + GPT Summarizer'
                 );
+            case 'google-grok':
+                return new SearchSummarizeCoordinator(
+                    settings,
+                    new GoogleSearchRetriever(settings),
+                    new GrokSummarizer(settings),
+                    'Google Search + Grok Summarizer'
+                );
             case 'sonar':
                 return new PerplexityNewsProvider(settings);
             case 'gpt':
                 return new GptAgenticProvider(settings);
+            case 'grok':
+                return new GrokAgenticProvider(settings);
             default:
                 throw new Error(`Unknown API provider: ${settings.apiProvider}`);
         }
@@ -39,10 +50,14 @@ export class NewsProviderFactory {
                 return !!(settings.googleSearchApiKey && settings.googleSearchEngineId && settings.geminiApiKey);
             case 'google-gpt':
                 return !!(settings.googleSearchApiKey && settings.googleSearchEngineId && settings.openaiApiKey);
+            case 'google-grok':
+                return !!(settings.googleSearchApiKey && settings.googleSearchEngineId && settings.grokApiKey);
             case 'sonar':
                 return !!settings.perplexityApiKey;
             case 'gpt':
                 return !!settings.openaiApiKey;
+            case 'grok':
+                return !!settings.grokApiKey;
             default:
                 return false;
         }
@@ -54,10 +69,14 @@ export class NewsProviderFactory {
                 return 'Google Search + Gemini Summarizer';
             case 'google-gpt':
                 return 'Google Search + GPT Summarizer';
+            case 'google-grok':
+                return 'Google Search + Grok Summarizer';
             case 'sonar':
                 return 'Sonar by Perplexity';
             case 'gpt':
                 return 'GPT (Agentic Search)';
+            case 'grok':
+                return 'Grok (Agentic Search)';
             default:
                 return 'Unknown Provider';
         }

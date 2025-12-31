@@ -1,6 +1,6 @@
 export interface DailyNewsSettings {
     // API provider selection
-    apiProvider: 'google-gemini' | 'google-gpt' | 'sonar' | 'gpt';
+    apiProvider: 'google-gemini' | 'google-gpt' | 'sonar' | 'gpt' | 'google-grok' | 'grok';
 
     // Google API settings
     googleSearchApiKey: string;
@@ -12,6 +12,9 @@ export interface DailyNewsSettings {
 
     // OpenAI API settings
     openaiApiKey: string;
+
+    // Grok API settings
+    grokApiKey: string;
     
     // Core functionality
     topics: string[];
@@ -70,6 +73,9 @@ export const DEFAULT_SETTINGS: DailyNewsSettings = {
 
     // OpenAI API settings
     openaiApiKey: '',
+
+    // Grok API settings
+    grokApiKey: '',
     
     // Core functionality
     topics: ['Technology', 'World News'],
