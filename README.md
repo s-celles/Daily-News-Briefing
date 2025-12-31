@@ -231,15 +231,18 @@ MIT License - Use freely and modify as needed!
 
 ## 📋 Changelog
 
-### v1.8.0
-- Refactor provider architecture
-    - Separated providers into `agentic-search` and `search-then-summarize` categories.
-    - This improves code organization and makes it easier to add new providers in the future.
-    - Add migration support.
+### v1.8.1
+- Add Grok support
 
 ### Previous Versions
 <details>
 <summary>Click to view changelog history</summary>
+
+**1.8.0**
+- Refactor provider architecture
+    - Separated providers into `agentic-search` and `search-then-summarize` categories.
+    - This improves code organization and makes it easier to add new providers in the future.
+    - Add migration support.
 
 **1.7.7**
 - Fix Google issues
