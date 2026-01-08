@@ -191,7 +191,7 @@ The sidebar button is smart:
 
 ## 🆘 Need Help?
 
-1.  📖 [Check GitHub Issues](https://github.com/Ghost04718/Daily-News-Briefing/issues) for existing solutions.
+1.  📖 [Check GitHub Issues](https://github.com/ChenziqiAdam/Daily-News-Briefing/issues) for existing solutions.
 2.  🐛 If you find a new bug, create a new issue with your settings (hide API keys!), error messages, and steps to reproduce.
 
 ---
