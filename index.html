@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily News Briefing - AI Summaries for Obsidian</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        obsidian: {
+                            bg: '#161616', // Darker, deeper black
+                            card: '#1e1e1e',
+                            border: '#2a2a2a',
+                            accent: '#a855f7', // Vivid Purple
+                            accentGlow: '#a855f740' 
+                        }
+                    },
+                    backgroundImage: {
+                        'grid-pattern': "linear-gradient(to right, #ffffff05 1px, transparent 1px), linear-gradient(to bottom, #ffffff05 1px, transparent 1px)",
+                        'radial-glow': "radial-gradient(circle at center, var(--tw-gradient-stops))",
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0d0d0d; color: #e5e5e5; }
+        
+        /* Smooth Text Rendering */
+        * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0d0d0d; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #444; }
+
+        /* Glass Cards */
+        .glass-card {
+            background: rgba(30, 30, 30, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .glass-card:hover {
+            border-color: rgba(168, 85, 247, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px -10px rgba(168, 85, 247, 0.15);
+        }
+
+        /* Obsidian Specific Typography for Mockup */
+        .obsidian-prose h1 { font-size: 1.875rem; font-weight: 700; margin-bottom: 1.5rem; color: white; }
+        .obsidian-prose h2 { font-size: 1.5rem; font-weight: 600; margin-top: 2rem; margin-bottom: 1rem; color: #d8b4fe; border-bottom: 1px solid #333; padding-bottom: 0.5rem; }
+        .obsidian-prose h3 { font-size: 1.1rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #e5e5e5; }
+        .obsidian-prose ul { list-style-type: none; padding-left: 0; }
+        .obsidian-prose li { margin-bottom: 0.75rem; position: relative; padding-left: 1.25rem; font-size: 0.95rem; line-height: 1.6; color: #d1d5db; }
+        .obsidian-prose li::before { content: "•"; position: absolute; left: 0; color: #a855f7; font-weight: bold; }
+        .obsidian-prose a { color: #a855f7; text-decoration: none; opacity: 0.8; }
+        .obsidian-prose a:hover { opacity: 1; text-decoration: underline; }
+        
+        /* Gradient Text */
+        .text-gradient {
+            background: linear-gradient(135deg, #fff 0%, #a855f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Noise Texture */
+        .bg-noise {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+        }
+    </style>
+</head>
+<body class="relative overflow-x-hidden selection:bg-purple-500/30 selection:text-purple-200">
+
+    <div class="fixed inset-0 bg-noise pointer-events-none z-50 mix-blend-overlay"></div>
+    <div class="fixed inset-0 bg-grid-pattern bg-[length:40px_40px] opacity-20 pointer-events-none"></div>
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-purple-600/20 blur-[120px] rounded-full pointer-events-none"></div>
+
+    <nav class="fixed w-full z-40 top-0 border-b border-white/5 bg-[#0d0d0d]/80 backdrop-blur-md">
+        <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                    <i class="fa-solid fa-newspaper text-white text-sm"></i>
+                </div>
+                <span class="font-bold text-lg tracking-tight text-white">Daily News Briefing</span>
+            </div>
+            
+            <div class="hidden md:flex items-center gap-8">
+                <a href="#features" class="text-sm text-gray-400 hover:text-white transition duration-200">Features</a>
+                <a href="#pipelines" class="text-sm text-gray-400 hover:text-white transition duration-200">Pipelines</a>
+                <a href="#install" class="text-sm text-gray-400 hover:text-white transition duration-200">Install</a>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <a href="https://github.com/ChenziqiAdam/Daily-News-Briefing" target="_blank" class="hidden sm:flex items-center gap-2 text-xs font-mono bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded border border-white/10 transition group">
+                    <i class="fa-brands fa-github text-gray-400 group-hover:text-white transition"></i>
+                    <span class="text-gray-300">1.5k+ Downloads</span>
+                </a>
+                <a href="obsidian://show-plugin?id=daily-news-briefing" class="px-4 py-2 bg-white text-black text-sm font-semibold rounded hover:bg-gray-100 transition shadow-[0_0_20px_-5px_rgba(255,255,255,0.3)]">
+                    Get Plugin
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="relative pt-32 pb-20 px-6 overflow-hidden">
+        <div class="max-w-5xl mx-auto text-center relative z-10">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm mb-8 animate-float">
+                <span class="flex h-2 w-2 relative">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+                <span class="text-gray-300">New in v1.8.1: <span class="text-white font-medium">Grok Support</span></span>
+            </div>
+
+            <h1 class="text-5xl md:text-7xl font-bold tracking-tight mb-8 leading-[1.1]">
+                Stop Searching.<br>
+                <span class="text-gradient">Start Knowing.</span>
+            </h1>
+            
+            <p class="text-lg md:text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
+                Your AI-powered research assistant, living directly inside your <strong class="text-purple-400">Obsidian vault</strong>. 
+            </p>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
+                <a href="obsidian://show-plugin?id=daily-news-briefing" class="w-full sm:w-auto px-8 py-3.5 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-500 transition shadow-lg shadow-purple-600/25 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-download"></i> Install for Obsidian
+                </a>
+                <a href="https://github.com/ChenziqiAdam/Daily-News-Briefing?tab=readme-ov-file#daily-news-briefing-for-obsidian" class="w-full sm:w-auto px-8 py-3.5 bg-[#1a1a1a] text-gray-300 font-medium rounded-lg border border-white/10 hover:bg-white/5 transition flex items-center justify-center gap-2">
+                    How it works <i class="fa-solid fa-arrow-right text-xs mt-0.5"></i>
+                </a>
+            </div>
+
+            <div class="relative mx-auto max-w-5xl perspective-1000">
+                <div class="absolute inset-0 bg-gradient-to-t from-purple-900/40 to-transparent blur-3xl -z-10 rounded-[30px] transform scale-95 translate-y-10"></div>
+                
+                <div class="rounded-xl border border-white/10 bg-[#1e1e1e] shadow-2xl overflow-hidden flex flex-col md:flex-row h-[600px] text-left">
+                    
+                    <div class="hidden md:flex w-64 bg-[#111111] border-r border-black/50 flex-col">
+                        <div class="p-4 border-b border-white/5 flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50"></div>
+                        </div>
+                        <div class="p-4 space-y-1">
+                            <div class="flex items-center gap-2 text-gray-500 text-sm px-2 py-1">
+                                <i class="fa-solid fa-folder text-xs"></i> Vault
+                            </div>
+                            <div class="pl-4 space-y-1">
+                                <div class="flex items-center gap-2 text-gray-400 text-sm px-2 py-1">
+                                    <i class="fa-solid fa-chevron-down text-[10px]"></i> 
+                                    <i class="fa-regular fa-folder text-purple-400"></i> News Archive
+                                </div>
+                                <div class="pl-6">
+                                    <div class="flex items-center justify-between px-2 py-1.5 rounded bg-purple-500/20 text-white text-sm border-l-2 border-purple-500">
+                                        <span class="truncate">2026-01-08</span>
+                                    </div>
+                                    <div class="flex items-center px-2 py-1.5 text-gray-500 text-sm hover:text-gray-300 cursor-pointer">
+                                        <span>2026-01-07</span>
+                                    </div>
+                                    <div class="flex items-center px-2 py-1.5 text-gray-500 text-sm hover:text-gray-300 cursor-pointer">
+                                        <span>2026-01-06</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 bg-[#1e1e1e] relative flex flex-col">
+                        <div class="h-10 bg-[#111111] flex items-center px-4 border-b border-black/50">
+                            <div class="flex items-center gap-2 text-sm text-gray-300 bg-[#1e1e1e] px-4 py-1.5 rounded-t border-t border-l border-r border-black/50 relative top-[1px]">
+                                <i class="fa-solid fa-file-lines text-gray-500"></i>
+                                Daily News - 2026-01-08
+                            </div>
+                        </div>
+                        
+                        <div class="p-8 overflow-y-auto custom-scrollbar flex-1 obsidian-prose">
+                            <div class="font-mono text-xs text-gray-500 border-b border-white/5 pb-4 mb-6">
+                                <div class="flex gap-4"><span class="text-purple-400">date:</span> "2026-01-08"</div>
+                                <div class="flex gap-4"><span class="text-purple-400">topics:</span> [AI, Tesla]</div>
+                                <div class="flex gap-4"><span class="text-purple-400">provider:</span> google-gemini</div>
+                            </div>
+
+                            <h1>Daily News Briefing</h1>
+                            <p class="italic text-gray-500 text-sm mb-6">*Generated at 09:54:19*</p>
+
+                            <div class="flex gap-2 mb-8">
+                                <span class="px-3 py-1 rounded-full bg-[#1e1e1e] border border-white/10 text-xs text-gray-400 font-mono hover:text-purple-400 cursor-pointer transition">#ai</span>
+                                <span class="px-3 py-1 rounded-full bg-[#1e1e1e] border border-white/10 text-xs text-gray-400 font-mono hover:text-purple-400 cursor-pointer transition">#tesla</span>
+                            </div>
+
+                            <h2>AI Key Developments</h2>
+                            <ul>
+                                <li>
+                                    <strong>Anthropic Plans $10 Billion Funding:</strong> AI chatbot maker Anthropic plans to raise $10 billion, aiming for a $350 billion valuation. <a href="#">The Guardian</a> (January 7, 2026)
+                                </li>
+                                <li>
+                                    <strong>NVIDIA's Vera Rubin AI Super-Chip:</strong> NVIDIA CEO Jensen Huang announced that the company's "Vera Rubin" platform is now in full production. <a href="#">Britannica</a> (January 8, 2026)
+                                </li>
+                                <li>
+                                    <strong>Google Gemini Controls Robots:</strong> Google's Gemini AI is reportedly taking control of humanoid robots on auto factory floors. <a href="#">WIRED</a> (January 8, 2026)
+                                </li>
+                            </ul>
+
+                            <h2>Tesla Updates</h2>
+                            <ul>
+                                <li>
+                                    <strong>Tesla Stock Falls, Musk Addresses Nvidia:</strong> On January 6, 2026, Tesla's stock experienced a decline, and Elon Musk reportedly dismissed Nvidia's competitive threat. <a href="#">MarketWatch</a>
+                                </li>
+                                <li>
+                                    <strong>Ranked 4th in 2025 US EV Sales:</strong> In 2025, Tesla was the 4th best-selling EV in the U.S., being surpassed by one non-Tesla vehicle. <a href="#">Source</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" class="py-24 px-6 relative">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">Curated Intelligence</h2>
+                <p class="text-gray-400">Filters out the noise. Delivers the signal.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-6 md:grid-rows-2 gap-6 h-auto md:h-[600px]">
+                
+                <div class="glass-card md:col-span-4 md:row-span-2 rounded-2xl p-8 relative overflow-hidden group">
+                    <div class="relative z-10 h-full flex flex-col justify-between">
+                        <div>
+                            <div class="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center mb-6 border border-purple-500/20">
+                                <i class="fa-solid fa-server text-purple-400 text-xl"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold mb-2 text-white">Multi-Model AI Pipeline</h3>
+                            <p class="text-gray-400 max-w-sm leading-relaxed">
+                                Why stick to one brain? Switch seamlessly between top-tier models depending on your needs.
+                            </p>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 mt-8">
+                            <div class="p-4 rounded-lg bg-black/40 border border-white/5 group-hover:border-purple-500/30 transition">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <i class="fa-brands fa-google text-white"></i>
+                                    <span class="font-bold text-sm">Google + Gemini</span>
+                                </div>
+                                <p class="text-xs text-gray-500">Free Tier Recommended</p>
+                            </div>
+                            <div class="p-4 rounded-lg bg-black/40 border border-white/5 group-hover:border-purple-500/30 transition">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <i class="fa-brands fa-openai text-white"></i>
+                                    <span class="font-bold text-sm">OpenAI GPT</span>
+                                </div>
+                                <p class="text-xs text-gray-500">Deep Agentic Search</p>
+                            </div>
+                            <div class="p-4 rounded-lg bg-black/40 border border-white/5 group-hover:border-purple-500/30 transition">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <i class="fa-solid fa-p text-white"></i>
+                                    <span class="font-bold text-sm">Perplexity</span>
+                                </div>
+                                <p class="text-xs text-gray-500">Real-time Speed</p>
+                            </div>
+                            <div class="p-4 rounded-lg bg-black/40 border border-white/5 group-hover:border-purple-500/30 transition">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <i class="fa-brands fa-x-twitter text-white"></i>
+                                    <span class="font-bold text-sm">Grok</span>
+                                </div>
+                                <p class="text-xs text-gray-500">X Platform Data</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card md:col-span-2 rounded-2xl p-8 group">
+                    <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center mb-4 border border-blue-500/20">
+                        <i class="fa-regular fa-clock text-blue-400"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Auto-Schedule</h3>
+                    <p class="text-sm text-gray-400">Set it to 8:00 AM. Your digest is generated silently in the background, ready when you open your vault.</p>
+                </div>
+
+                <div class="glass-card md:col-span-2 rounded-2xl p-8 group">
+                    <div class="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center mb-4 border border-green-500/20">
+                        <i class="fa-solid fa-language text-green-400"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Polyglot</h3>
+                    <p class="text-sm text-gray-400">Read global news in your language. Supports English, French, German, Spanish, Italian, and Chinese.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="pipelines" class="py-24 px-6 border-t border-white/5 bg-gradient-to-b from-[#0d0d0d] to-[#111111]">
+        <div class="max-w-5xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold mb-4">Choose Your Engine</h2>
+                <p class="text-gray-400">We support both free research and premium agentic AI.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="glass-card p-1 rounded-2xl relative">
+                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-lg shadow-purple-600/40">
+                        Recommended
+                    </div>
+                    <div class="bg-[#161616] rounded-xl p-8 h-full flex flex-col border border-purple-500/30">
+                        <div class="flex justify-between items-start mb-6">
+                            <div>
+                                <h3 class="text-xl font-bold text-white">Google Search + Gemini</h3>
+                                <p class="text-purple-400 text-sm mt-1">The Cost-Effective Powerhouse</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-2xl font-bold text-white">Free</span>
+                                <p class="text-xs text-gray-500">Using Free Tier Keys</p>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-4 mb-8 flex-1">
+                            <div class="flex gap-3 text-sm text-gray-300">
+                                <i class="fa-solid fa-check text-green-500 mt-1"></i>
+                                <span>Totally free to operate (Google Free Tier)</span>
+                            </div>
+                            <div class="flex gap-3 text-sm text-gray-300">
+                                <i class="fa-solid fa-check text-green-500 mt-1"></i>
+                                <span>Advanced search result filtering</span>
+                            </div>
+                            <div class="flex gap-3 text-sm text-gray-300">
+                                <i class="fa-solid fa-check text-green-500 mt-1"></i>
+                                <span>High token limit for broad topics</span>
+                            </div>
+                        </div>
+                        
+                        <div class="p-4 bg-white/5 rounded border border-white/5 text-xs text-gray-400">
+                            <strong>Requirement:</strong> 3 API Keys (Google Custom Search, Search Engine ID, Gemini). Setup takes ~5 mins.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-1 rounded-2xl">
+                    <div class="bg-[#161616] rounded-xl p-8 h-full flex flex-col">
+                        <div class="flex justify-between items-start mb-6">
+                            <div>
+                                <h3 class="text-xl font-bold text-white">Agentic Search</h3>
+                                <p class="text-blue-400 text-sm mt-1">Perplexity, GPT-4, Grok</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-xl font-bold text-gray-300">Paid API</span>
+                                <p class="text-xs text-gray-500">Per request</p>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-4 mb-8 flex-1">
+                            <div class="flex gap-3 text-sm text-gray-300">
+                                <i class="fa-solid fa-check text-blue-500 mt-1"></i>
+                                <span>Simple setup (Just 1 API Key)</span>
+                            </div>
+                            <div class="flex gap-3 text-sm text-gray-300">
+                                <i class="fa-solid fa-check text-blue-500 mt-1"></i>
+                                <span>State-of-the-art reasoning (Agentic)</span>
+                            </div>
+                            <div class="flex gap-3 text-sm text-gray-300">
+                                <i class="fa-solid fa-check text-blue-500 mt-1"></i>
+                                <span>Real-time access to X (Grok) or Web (Perplexity)</span>
+                            </div>
+                        </div>
+
+                         <div class="p-4 bg-white/5 rounded border border-white/5 text-xs text-gray-400">
+                            <strong>Requirement:</strong> A funded API account with OpenAI, Perplexity, or xAI.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="install" class="py-24 px-6 relative overflow-hidden">
+        <div class="max-w-4xl mx-auto">
+             <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold mb-4">Get Started in Seconds</h2>
+            </div>
+
+            <div class="relative">
+                <div class="absolute left-8 top-0 bottom-0 w-px bg-gradient-to-b from-purple-500/0 via-purple-500/50 to-purple-500/0 md:left-1/2"></div>
+
+                <div class="space-y-12">
+                    <div class="relative flex flex-col md:flex-row gap-8 md:items-center group">
+                        <div class="flex-1 md:text-right">
+                            <h3 class="text-xl font-bold text-white mb-2">Install Plugin</h3>
+                            <p class="text-gray-400 text-sm">Open Obsidian Settings > Community Plugins. Turn off Safe Mode and search for "Daily News Briefing".</p>
+                        </div>
+                        <div class="absolute left-8 -translate-x-1/2 md:relative md:left-auto md:translate-x-0 w-4 h-4 rounded-full bg-black border-2 border-purple-500 z-10 shadow-[0_0_10px_rgba(168,85,247,0.5)]"></div>
+                        <div class="flex-1 pl-10 md:pl-0">
+                             <div class="bg-black/40 border border-white/10 p-4 rounded-lg font-mono text-xs text-gray-300">
+                                <span class="text-green-400">➜</span> Click <span class="text-white font-bold">Install</span> and <span class="text-white font-bold">Enable</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="relative flex flex-col md:flex-row-reverse gap-8 md:items-center group">
+                        <div class="flex-1 md:text-left">
+                            <h3 class="text-xl font-bold text-white mb-2">Choose Provider</h3>
+                            <p class="text-gray-400 text-sm">Select "Google + Gemini" for the free tier, or paste your OpenAI/Perplexity/Grok key.</p>
+                        </div>
+                        <div class="absolute left-8 -translate-x-1/2 md:relative md:left-auto md:translate-x-0 w-4 h-4 rounded-full bg-black border-2 border-purple-500 z-10 shadow-[0_0_10px_rgba(168,85,247,0.5)]"></div>
+                        <div class="flex-1 pl-10 md:pl-0 md:text-right">
+                            <div class="inline-block bg-black/40 border border-white/10 p-4 rounded-lg font-mono text-xs text-gray-300 text-left">
+                                API Key: <span class="text-gray-500">sk-proj-................</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="relative flex flex-col md:flex-row gap-8 md:items-center group">
+                        <div class="flex-1 md:text-right">
+                            <h3 class="text-xl font-bold text-white mb-2">Define Topics</h3>
+                            <p class="text-gray-400 text-sm">Tell the AI what you care about. Be specific for better results.</p>
+                        </div>
+                        <div class="absolute left-8 -translate-x-1/2 md:relative md:left-auto md:translate-x-0 w-4 h-4 rounded-full bg-black border-2 border-purple-500 z-10 shadow-[0_0_10px_rgba(168,85,247,0.5)]"></div>
+                        <div class="flex-1 pl-10 md:pl-0">
+                             <div class="bg-black/40 border border-white/10 p-4 rounded-lg font-mono text-xs text-gray-300">
+                                Topics: <span class="text-purple-400">"Nvidia, Bitcoin"</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-20 text-center">
+                 <a href="obsidian://show-plugin?id=daily-news-briefing" class="inline-flex items-center gap-2 px-10 py-4 bg-white text-black font-bold rounded-lg hover:bg-purple-50 transition transform hover:scale-105 shadow-[0_0_30px_-5px_rgba(255,255,255,0.4)]">
+                    <i class="fa-solid fa-download"></i> Open in Obsidian
+                </a>
+                <p class="mt-4 text-xs text-gray-500">Requires Obsidian v1.0.0+</p>
+            </div>
+        </div>
+    </section>
+
+    <footer class="border-t border-white/5 bg-[#0a0a0a] py-12 px-6">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-2">
+                 <i class="fa-solid fa-newspaper text-purple-500"></i>
+                 <span class="font-bold text-gray-200">Daily News Briefing</span>
+            </div>
+            <div class="text-gray-500 text-sm text-center md:text-right">
+                <p class="mb-2">Built for the community. Open Source (MIT).</p>
+                <div class="flex items-center justify-center md:justify-end gap-6">
+                    <a href="https://github.com/ChenziqiAdam/Daily-News-Briefing" class="hover:text-white transition"><i class="fa-brands fa-github"></i> GitHub</a>
+                    <a href="https://github.com/ChenziqiAdam/Daily-News-Briefing/issues" class="hover:text-white transition">Report Bug</a>
+                    <a href="https://www.buymeacoffee.com/adamchen" class="hover:text-yellow-400 transition"><i class="fa-solid fa-mug-hot"></i> Donate</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>
