@@ -2,10 +2,10 @@
 
 **Get AI-powered daily news summaries on topics you care about, delivered automatically to your vault.**
 
-## 🚀 Quick Start (5-minute setup)
+## 🚀 Quick Start
 
 1.  **Install the plugin** from Obsidian Community Plugins.
-2.  **Choose your AI provider** (we recommend Perplexity for beginners).
+2.  **Choose your AI provider**.
 3.  **Get your API key** (see detailed guides below).
 4.  **Configure your topics** (e.g., "Technology," "World News").
 5.  **Set your schedule**, and you're done!
@@ -14,13 +14,12 @@
 
 ## ✨ Key Features
 
--   🤖 **AI-Powered Summaries**: Smart news analysis using Google Gemini, Perplexity Sonar, or GPT-5-Search-API.
+-   🤖 **AI-Powered Summaries**: Smart news analysis with AI, supporting multiple AI providers including Google, OpenAI, xAI and Perplexity.
 -   📅 **Auto-Generated Daily Briefings**: Wake up to fresh news in your vault.
 -   🎯 **Custom Topics**: Track exactly what interests you.
 -   🌍 **Multi-Language Support**: News in English, French, German, Spanish, and Italian.
 -   📱 **One-Click Access**: Sidebar button for instant news generation.
 -   📊 **Beautiful Formatting**: Clean, readable summaries with sources.
--   ⚡ **Three API Options**: Simple setups for Perplexity and GPT-5-Search-API, or advanced configuration for Google.
 
 ---
 
@@ -28,31 +27,31 @@
 
 ### Step 1: Install Plugin
 
-1.  Open Obsidian Settings (`Ctrl/Cmd + ,`).
+1.  Open Obsidian Settings.
 2.  Navigate to **Community Plugins** → Turn off **Safe Mode**.
 3.  Click **Browse** → Search for **"Daily News Briefing"**.
 4.  Click **Install** → **Enable**.
 
 ### Step 2: Choose Your News Pipeline
 
-You have four options for your news generation pipeline. **We recommend Perplexity for beginners.**
+You have four options for your news generation pipeline. **We recommend Google + Gemini because it is totally free.**
 
-| Pipeline | Pros | Cons | Best For |
-| --- | --- | --- | --- |
-| **Perplexity (Agentic)** ⭐ | • Easiest setup (1 key)<br>• Great results | • Paid service only | Beginners, simple setup |
-| **GPT (Agentic)** | • Simple setup (1 key)<br>• High-quality summaries | • Paid service only | Users who want top-tier AI |
-| **Grok (Agentic)** | • Simple setup (1 key)<br>• Fast summaries | • Paid service only | Users who want fast, real-time info |
-| **Google Search + Gemini** | • Free tier available<br>• Advanced filtering | • Most complex setup (3 keys) | Power users, free option |
-| **Google Search + GPT** | • Mix-and-match<br>• Advanced filtering | • Complex setup (3 keys) | Users who prefer Google's search with GPT's summarization |
-| **Google Search + Grok** | • Mix-and-match<br>• Advanced filtering | • Complex setup (3 keys) | Users who prefer Google's search with Grok's summarization |
+| Pipeline                   | Pros                                               | Cons                                           | Best For                            |
+| -------------------------- | -------------------------------------------------- | ---------------------------------------------- | ----------------------------------- |
+| **Perplexity (Agentic)**   | • Simple setup (1 key)<br>• Fast results           | • Paid service only                            | Users who want fast, real-time info |
+| **GPT (Agentic)**          | • Simple setup (1 key)<br>• High-quality summaries | • Paid service only                            | Users who want top-tier AI          |
+| **Grok (Agentic)**         | • Simple setup (1 key)<br>• High-quality summaries | • Paid service only                            | Users who want top-tier AI          |
+| **Google Search + Gemini** | • **Free tier available**<br>• Advanced filtering  | • Complex setup (3 keys)<br>• **Free service** | Power users, free option            |
+| **Google Search + GPT**    | • Mix-and-match<br>• Advanced filtering            | • Complex setup (3 keys)                       | Users who want top-tier AI          |
+| **Google Search + Grok**   | • Mix-and-match<br>• Advanced filtering            | • Complex setup (3 keys)                       | Users who want top-tier AI          |
 
 ---
 
 ## 🔑 API Setup Guides
 
-### Option A: Perplexity (Agentic Search) - Recommended
+### Option A: Perplexity (Agentic Search) 
 
-**Why?** The simplest setup with just one API key, providing excellent results out of the box.
+**Why?** Simple setup with one API key, providing fast, real-time news.
 
 1.  **Get API Key:** Visit [Perplexity API](https://perplexity.ai/).
 2.  **Configure in Plugin:**
@@ -70,7 +69,7 @@ You have four options for your news generation pipeline. **We recommend Perplexi
 
 ### Option C: Grok (Agentic Search)
 
-**Why?** Simple setup with one API key, using a fast AI model for searching and summarizing.
+**Why?** Simple setup with one API key, using a state-of-the-art AI model for searching and summarizing.
 
 1.  **Get API Key:** Visit [Grok API](https://x.ai/).
 2.  **Configure in Plugin:**
@@ -180,22 +179,13 @@ The sidebar button is smart:
 
 ### "API Error" messages
 
--   **For Perplexity/GPT-5-Search-API**: Verify your API key and that your account has sufficient credits.
--   **For Google**: Ensure all 3 API keys are valid and check your API quotas/billing.
+- Verify your API key and that your account has sufficient credits.
 
 ### Plugin not working after update
 
 1.  Reload Obsidian (`Ctrl/Cmd + R`).
 2.  Disable and re-enable the plugin.
 3.  Check for new plugin updates.
-
----
-
-## 💡 Pro Tips for Best Results
-
--   **Topics**: Be specific (e.g., "Artificial Intelligence," "Climate Change"). Avoid vague terms like "News."
--   **Scheduling**: Set the generation time for when you typically start your day.
--   **Language**: News content will be in your selected language, though sources may still be in English. Summaries are translated.
 
 ---
 
@@ -331,6 +321,13 @@ MIT License - Use freely and modify as needed!
 
 ---
 
-## 🎯 What's Next?
+## 🎯 Road Map
 
-**Stay tuned!** ⭐ Star the repo to get notified of updates.
+- [ ] Support multiple AI providers
+	- [x] OpenAI
+	- [x] xAI
+	- [ ] Anthropic
+- [ ] Support more news sources
+- [ ] Others
+	- [ ] Add Gemini agentic search
+	- [ ] Support customizable template
