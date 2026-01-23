@@ -1,5 +1,7 @@
 # Daily News Briefing for Obsidian
 
+> [Official website](https://chenziqiadam.github.io/Daily-News-Briefing/) launches!
+
 **Get AI-powered daily news summaries on topics you care about, delivered automatically to your vault.**
 
 ## 🚀 Quick Start
