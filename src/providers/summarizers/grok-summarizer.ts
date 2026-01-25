@@ -1,4 +1,4 @@
-import { xai } from '@ai-sdk/xai';
+import { createXai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 import type { NewsItem, DailyNewsSettings } from '../../types';
 import { LanguageUtils } from '../../utils';
@@ -13,9 +13,17 @@ export class GrokSummarizer implements AISummarizer {
     }
 
     async summarize(newsItems: NewsItem[], topic: string): Promise<string> {
+        if (!this.settings.grokApiKey) {
+            return `Error: Grok API key is not configured. Please add your API key in the plugin settings.`;
+        }
+
         if (!newsItems.length) {
             return `No recent news found for ${topic}.`;
         }
+
+        const xai = createXai({
+            apiKey: this.settings.grokApiKey
+        });
 
         const enhancedNewsText = newsItems.map(item => {
             const domain = new URL(item.link).hostname.replace('www.', '');

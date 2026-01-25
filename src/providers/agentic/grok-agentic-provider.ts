@@ -1,4 +1,4 @@
-import { xai } from '@ai-sdk/xai';
+import { createXai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 import { BaseNewsProvider } from '../base-news-provider';
 import type { DailyNewsSettings } from '../../types';
@@ -20,6 +20,14 @@ export class GrokAgenticProvider extends BaseNewsProvider {
 
 
     async fetchAndSummarizeNews(topic: string): Promise<string> {
+        if (!this.settings.grokApiKey) {
+            return `Error: Grok API key is not configured. Please add your API key in the plugin settings.`;
+        }
+
+        const xai = createXai({
+            apiKey: this.settings.grokApiKey
+        });
+
         try {
             let systemMessage: string;
 
