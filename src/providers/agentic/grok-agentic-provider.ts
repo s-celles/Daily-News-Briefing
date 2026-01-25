@@ -1,19 +1,13 @@
-import OpenAI from "openai";
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
 import { BaseNewsProvider } from '../base-news-provider';
 import type { DailyNewsSettings } from '../../types';
 import { LanguageUtils } from '../../utils';
-import { GROK_MODEL_NAME, GROK_API_URL } from '../../constants';
+import { GROK_MODEL_NAME } from '../../constants';
 
 export class GrokAgenticProvider extends BaseNewsProvider {
-    private client: OpenAI;
-
     constructor(settings: DailyNewsSettings) {
         super(settings);
-        this.client = new OpenAI({
-            apiKey: this.settings.grokApiKey,
-            baseURL: GROK_API_URL,
-            dangerouslyAllowBrowser: true
-        });
     }
 
     getProviderName(): string {
@@ -75,24 +69,17 @@ Format your summary as bullet points with concrete facts:
                 `What are the latest significant news about "${topic}"? Search for information in English, but translate your final response into the language with ISO 639-1 code "${this.settings.language}".` : 
                 `What are the latest significant news about "${topic}"?`;
             
-            const completion = await this.client.chat.completions.create({
-                model: GROK_MODEL_NAME,
-                // Grok might not support web_search_options. This is a bet.
-                // Based on user provided info, it uses tools for this, but this might just work.
-                // @ts-ignore
-                web_search_options: {},
-                messages: [{
-                    "role": "system",
-                    "content": systemMessage
-                }, {
-                    "role": "user",
-                    "content": userContent
-                }],
+            const { text } = await generateText({
+                model: xai.chat(GROK_MODEL_NAME),
+                prompt: userContent,
+                system: systemMessage,
+                tools: {
+                    web_search: xai.tools.webSearch(),
+                },
             });
 
-            const content = completion.choices[0].message.content;
-            if (content) {
-                return content;
+            if (text) {
+                return text;
             } else {
                 throw new Error('Invalid response format from Grok API');
             }

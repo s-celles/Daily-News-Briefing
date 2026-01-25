@@ -1,20 +1,15 @@
-import OpenAI from "openai";
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
 import type { NewsItem, DailyNewsSettings } from '../../types';
 import { LanguageUtils } from '../../utils';
-import { GROK_MODEL_NAME, GROK_API_URL } from '../../constants';
+import { GROK_MODEL_NAME } from '../../constants';
 import type { AISummarizer } from './base-summarizer';
 
 export class GrokSummarizer implements AISummarizer {
-    private client: OpenAI;
     private settings: DailyNewsSettings;
 
     constructor(settings: DailyNewsSettings) {
         this.settings = settings;
-        this.client = new OpenAI({
-            apiKey: this.settings.grokApiKey,
-            baseURL: GROK_API_URL,
-            dangerouslyAllowBrowser: true
-        });
     }
 
     async summarize(newsItems: NewsItem[], topic: string): Promise<string> {
@@ -36,17 +31,16 @@ export class GrokSummarizer implements AISummarizer {
         const systemMessage = this.getAIPrompt(enhancedNewsText, topic, this.settings.outputFormat);
 
         try {
-            const completion = await this.client.chat.completions.create({
-                model: GROK_MODEL_NAME,
+            const { text } = await generateText({
+                model: xai.chat(GROK_MODEL_NAME),
                 messages: [{
-                    "role": "system",
-                    "content": systemMessage
+                    role: 'system',
+                    content: systemMessage,
                 }],
             });
 
-            const content = completion.choices[0].message.content;
-            if (content) {
-                return content;
+            if (text) {
+                return text;
             } else {
                 throw new Error('Invalid response format from Grok API');
             }

@@ -223,12 +223,15 @@ MIT License - Use freely and modify as needed!
 
 ## 📋 Changelog
 
-### v1.8.1
-- Add Grok support
+### v1.8.2
+- Fix Grok agentic search
 
 ### Previous Versions
 <details>
 <summary>Click to view changelog history</summary>
+
+**1.8.1**
+- Add Grok support
 
 **1.8.0**
 - Refactor provider architecture
