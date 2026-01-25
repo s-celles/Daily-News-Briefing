@@ -77,10 +77,16 @@ Format your summary as bullet points with concrete facts:
                 `What are the latest significant news about "${topic}"? Search for information in English, but translate your final response into the language with ISO 639-1 code "${this.settings.language}".` : 
                 `What are the latest significant news about "${topic}"?`;
             
-            const { text } = await generateText({
-                model: xai.chat(GROK_MODEL_NAME),
-                prompt: userContent,
-                system: systemMessage,
+            const { text, sources } = await generateText({
+                model: xai.responses(GROK_MODEL_NAME),
+                messages: [{
+                    role: 'system',
+                    content: systemMessage,
+                },
+                {
+                    role: 'user',
+                    content: userContent,
+                }],
                 tools: {
                     web_search: xai.tools.webSearch(),
                 },

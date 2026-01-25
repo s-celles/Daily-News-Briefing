@@ -40,7 +40,7 @@ export class GrokSummarizer implements AISummarizer {
 
         try {
             const { text } = await generateText({
-                model: xai.chat(GROK_MODEL_NAME),
+                model: xai.responses(GROK_MODEL_NAME),
                 messages: [{
                     role: 'system',
                     content: systemMessage,
