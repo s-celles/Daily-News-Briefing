@@ -1,16 +1,27 @@
 import type { TemplateData } from './types';
 import { TEMPLATE_PRESETS } from './template-presets';
+import type { App } from 'obsidian';
 
 export class TemplateEngine {
     /**
      * Render a template with provided data
      */
-    static renderTemplate(templateType: 'default' | 'minimal' | 'detailed' | 'custom', customTemplate: string, data: TemplateData): string {
+    static renderTemplate(
+        templateType: 'default' | 'minimal' | 'detailed' | 'custom' | 'file',
+        customTemplate: string,
+        data: TemplateData,
+        templateFileContent?: string
+    ): string {
         // Get the template based on type
         let template: string;
 
-        if (templateType === 'custom') {
+        if (templateType === 'file' && templateFileContent) {
+            template = templateFileContent;
+        } else if (templateType === 'custom') {
             template = customTemplate || TEMPLATE_PRESETS.default;
+        } else if (templateType === 'file') {
+            // Fallback if file type but no content
+            template = TEMPLATE_PRESETS.default;
         } else {
             template = TEMPLATE_PRESETS[templateType];
         }
@@ -18,19 +29,71 @@ export class TemplateEngine {
         // Replace all placeholders with actual data
         let result = template;
 
-        // Replace each placeholder
+        // Basic placeholders
         result = result.replace(/\{\{METADATA\}\}/g, data.metadata);
         result = result.replace(/\{\{TIMESTAMP\}\}/g, data.timestamp);
         result = result.replace(/\{\{DATE\}\}/g, data.date);
+        result = result.replace(/\{\{TIME\}\}/g, data.time);
         result = result.replace(/\{\{TABLE_OF_CONTENTS\}\}/g, data.tableOfContents);
         result = result.replace(/\{\{TOPICS\}\}/g, data.topics);
         result = result.replace(/\{\{PROCESSING_STATUS\}\}/g, data.processingStatus);
         result = result.replace(/\{\{LANGUAGE\}\}/g, data.language);
 
-        // Clean up any empty sections (e.g., empty metadata or processing status)
+        // Fine-grained date/time placeholders
+        result = result.replace(/\{\{YEAR\}\}/g, data.year);
+        result = result.replace(/\{\{MONTH\}\}/g, data.month);
+        result = result.replace(/\{\{MONTH_NAME\}\}/g, data.monthName);
+        result = result.replace(/\{\{MONTH_NAME_SHORT\}\}/g, data.monthNameShort);
+        result = result.replace(/\{\{DAY\}\}/g, data.day);
+        result = result.replace(/\{\{DAY_NAME\}\}/g, data.dayName);
+        result = result.replace(/\{\{DAY_NAME_SHORT\}\}/g, data.dayNameShort);
+        result = result.replace(/\{\{HOUR\}\}/g, data.hour);
+        result = result.replace(/\{\{MINUTE\}\}/g, data.minute);
+        result = result.replace(/\{\{SECOND\}\}/g, data.second);
+
+        // Metadata field placeholders
+        result = result.replace(/\{\{METADATA_DATE\}\}/g, data.metadataDate);
+        result = result.replace(/\{\{METADATA_TIME\}\}/g, data.metadataTime);
+        result = result.replace(/\{\{METADATA_TAGS\}\}/g, data.metadataTags);
+        result = result.replace(/\{\{METADATA_LANGUAGE\}\}/g, data.metadataLanguage);
+        result = result.replace(/\{\{METADATA_PROVIDER\}\}/g, data.metadataProvider);
+
+        // Topic info placeholders
+        result = result.replace(/\{\{TOPIC_COUNT\}\}/g, data.topicCount);
+        result = result.replace(/\{\{TOPIC_LIST\}\}/g, data.topicList);
+
+        // Clean up any empty sections
         result = this.cleanupEmptyLines(result);
 
         return result;
+    }
+
+    /**
+     * Load template from a file in the vault
+     */
+    static async loadTemplateFile(app: App, filePath: string): Promise<string | null> {
+        try {
+            if (!filePath || filePath.trim() === '') {
+                return null;
+            }
+
+            // Normalize path
+            const normalizedPath = filePath.trim();
+
+            // Check if file exists
+            const file = app.vault.getAbstractFileByPath(normalizedPath);
+            if (!file) {
+                console.error(`Template file not found: ${normalizedPath}`);
+                return null;
+            }
+
+            // Read file content
+            const content = await app.vault.read(file as any);
+            return content;
+        } catch (error) {
+            console.error('Error loading template file:', error);
+            return null;
+        }
     }
 
     /**
@@ -51,16 +114,7 @@ export class TemplateEngine {
         }
 
         // Check for unknown placeholders
-        const validPlaceholders = [
-            '{{METADATA}}',
-            '{{TIMESTAMP}}',
-            '{{DATE}}',
-            '{{TABLE_OF_CONTENTS}}',
-            '{{TOPICS}}',
-            '{{PROCESSING_STATUS}}',
-            '{{LANGUAGE}}'
-        ];
-
+        const validPlaceholders = this.getValidPlaceholders();
         const placeholderRegex = /\{\{([A-Z_]+)\}\}/g;
         const matches = template.match(placeholderRegex);
 
@@ -76,6 +130,26 @@ export class TemplateEngine {
             valid: errors.length === 0,
             errors
         };
+    }
+
+    /**
+     * Get all valid placeholder names
+     */
+    static getValidPlaceholders(): string[] {
+        return [
+            // Basic
+            '{{METADATA}}', '{{TIMESTAMP}}', '{{DATE}}', '{{TIME}}',
+            '{{TABLE_OF_CONTENTS}}', '{{TOPICS}}', '{{PROCESSING_STATUS}}', '{{LANGUAGE}}',
+            // Date/Time
+            '{{YEAR}}', '{{MONTH}}', '{{MONTH_NAME}}', '{{MONTH_NAME_SHORT}}',
+            '{{DAY}}', '{{DAY_NAME}}', '{{DAY_NAME_SHORT}}',
+            '{{HOUR}}', '{{MINUTE}}', '{{SECOND}}',
+            // Metadata
+            '{{METADATA_DATE}}', '{{METADATA_TIME}}', '{{METADATA_TAGS}}',
+            '{{METADATA_LANGUAGE}}', '{{METADATA_PROVIDER}}',
+            // Topic info
+            '{{TOPIC_COUNT}}', '{{TOPIC_LIST}}'
+        ];
     }
 
     /**
@@ -120,17 +194,55 @@ export class TemplateEngine {
     }
 
     /**
-     * Get available placeholders info
+     * Get available placeholders info (organized by category)
      */
-    static getPlaceholderInfo(): { placeholder: string; description: string }[] {
+    static getPlaceholderInfo(): { category: string; placeholders: { placeholder: string; description: string }[] }[] {
         return [
-            { placeholder: '{{METADATA}}', description: 'YAML frontmatter (if enabled in settings)' },
-            { placeholder: '{{TIMESTAMP}}', description: 'Generation time (e.g., "Generated at 10:30:00 AM")' },
-            { placeholder: '{{DATE}}', description: 'Current date (YYYY-MM-DD format)' },
-            { placeholder: '{{TABLE_OF_CONTENTS}}', description: 'Auto-generated table of contents' },
-            { placeholder: '{{TOPICS}}', description: 'All topic sections combined' },
-            { placeholder: '{{PROCESSING_STATUS}}', description: 'Error summary (shown only if errors occurred)' },
-            { placeholder: '{{LANGUAGE}}', description: 'Current language code (e.g., "en")' }
+            {
+                category: 'Basic',
+                placeholders: [
+                    { placeholder: '{{METADATA}}', description: 'YAML frontmatter (if enabled)' },
+                    { placeholder: '{{TIMESTAMP}}', description: 'Generation time (e.g., "Generated at 10:30:00 AM")' },
+                    { placeholder: '{{DATE}}', description: 'Current date (YYYY-MM-DD)' },
+                    { placeholder: '{{TIME}}', description: 'Current time (HH:MM:SS)' },
+                    { placeholder: '{{TABLE_OF_CONTENTS}}', description: 'Auto-generated TOC' },
+                    { placeholder: '{{TOPICS}}', description: 'All topic sections' },
+                    { placeholder: '{{PROCESSING_STATUS}}', description: 'Error summary (if errors)' },
+                    { placeholder: '{{LANGUAGE}}', description: 'Language code (e.g., "en")' }
+                ]
+            },
+            {
+                category: 'Date/Time (Fine-grained)',
+                placeholders: [
+                    { placeholder: '{{YEAR}}', description: 'Year (YYYY)' },
+                    { placeholder: '{{MONTH}}', description: 'Month number (MM)' },
+                    { placeholder: '{{MONTH_NAME}}', description: 'Full month name (January, February...)' },
+                    { placeholder: '{{MONTH_NAME_SHORT}}', description: 'Short month (Jan, Feb...)' },
+                    { placeholder: '{{DAY}}', description: 'Day of month (DD)' },
+                    { placeholder: '{{DAY_NAME}}', description: 'Full day name (Monday, Tuesday...)' },
+                    { placeholder: '{{DAY_NAME_SHORT}}', description: 'Short day (Mon, Tue...)' },
+                    { placeholder: '{{HOUR}}', description: 'Hour (HH, 24-hour format)' },
+                    { placeholder: '{{MINUTE}}', description: 'Minute (MM)' },
+                    { placeholder: '{{SECOND}}', description: 'Second (SS)' }
+                ]
+            },
+            {
+                category: 'Metadata Fields',
+                placeholders: [
+                    { placeholder: '{{METADATA_DATE}}', description: 'Date from metadata' },
+                    { placeholder: '{{METADATA_TIME}}', description: 'Time from metadata' },
+                    { placeholder: '{{METADATA_TAGS}}', description: 'Comma-separated tags' },
+                    { placeholder: '{{METADATA_LANGUAGE}}', description: 'Language from metadata' },
+                    { placeholder: '{{METADATA_PROVIDER}}', description: 'API provider name' }
+                ]
+            },
+            {
+                category: 'Topic Information',
+                placeholders: [
+                    { placeholder: '{{TOPIC_COUNT}}', description: 'Number of topics' },
+                    { placeholder: '{{TOPIC_LIST}}', description: 'Comma-separated topic names' }
+                ]
+            }
         ];
     }
 }
