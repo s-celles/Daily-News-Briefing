@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation - Daily News Briefing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        obsidian: {
+                            bg: '#161616',
+                            card: '#1e1e1e',
+                            border: '#2a2a2a',
+                            accent: '#a855f7',
+                            accentGlow: '#a855f740'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0d0d0d; color: #e5e5e5; }
+        * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0d0d0d; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #444; }
+
+        .docs-content h2 { font-size: 1.875rem; font-weight: 700; margin-top: 3rem; margin-bottom: 1rem; color: white; border-bottom: 2px solid #a855f7; padding-bottom: 0.5rem; }
+        .docs-content h3 { font-size: 1.5rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.75rem; color: #d8b4fe; }
+        .docs-content h4 { font-size: 1.25rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #e5e5e5; }
+        .docs-content p { margin-bottom: 1rem; line-height: 1.7; color: #d1d5db; }
+        .docs-content ul, .docs-content ol { margin-bottom: 1rem; padding-left: 1.5rem; }
+        .docs-content li { margin-bottom: 0.5rem; line-height: 1.6; color: #d1d5db; }
+        .docs-content ul li { list-style-type: disc; }
+        .docs-content ol li { list-style-type: decimal; }
+        .docs-content code { background: #1a1a1a; padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-family: 'JetBrains Mono', monospace; font-size: 0.875rem; color: #a855f7; }
+        .docs-content pre { background: #1a1a1a; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1rem; border: 1px solid #333; }
+        .docs-content pre code { background: transparent; padding: 0; color: #d1d5db; }
+        .docs-content a { color: #a855f7; text-decoration: underline; }
+        .docs-content a:hover { color: #d8b4fe; }
+        .docs-content table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+        .docs-content table th { background: #1a1a1a; padding: 0.75rem; text-align: left; border: 1px solid #333; font-weight: 600; color: #a855f7; }
+        .docs-content table td { padding: 0.75rem; border: 1px solid #333; vertical-align: top; }
+        .docs-content table tr:nth-child(even) { background: #161616; }
+
+        .sidebar-nav { position: sticky; top: 5rem; max-height: calc(100vh - 6rem); overflow-y: auto; }
+        .sidebar-nav a { display: block; padding: 0.5rem 1rem; color: #9ca3af; font-size: 0.875rem; transition: all 0.2s; border-left: 2px solid transparent; }
+        .sidebar-nav a:hover { color: white; border-left-color: #a855f7; background: rgba(168, 85, 247, 0.1); }
+        .sidebar-nav a.active { color: #a855f7; border-left-color: #a855f7; background: rgba(168, 85, 247, 0.1); font-weight: 600; }
+
+        .alert { padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; border-left: 4px solid; }
+        .alert-info { background: rgba(59, 130, 246, 0.1); border-color: #3b82f6; color: #93c5fd; }
+        .alert-warning { background: rgba(245, 158, 11, 0.1); border-color: #f59e0b; color: #fcd34d; }
+        .alert-success { background: rgba(34, 197, 94, 0.1); border-color: #22c55e; color: #86efac; }
+
+        .feature-box { background: #1a1a1a; border: 1px solid #333; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .feature-box h5 { color: #a855f7; font-weight: 600; margin-bottom: 0.75rem; font-size: 1.1rem; }
+        .feature-box p { margin-bottom: 0.5rem; }
+
+        .badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; margin-right: 0.5rem; margin-bottom: 0.5rem; }
+        .badge-free { background: rgba(34, 197, 94, 0.2); color: #86efac; border: 1px solid #22c55e; }
+        .badge-paid { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid #ef4444; }
+        .badge-simple { background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid #3b82f6; }
+
+        /* Mermaid diagram theming */
+        .mermaid { background: #1a1a1a; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid #333; }
+    </style>
+</head>
+<body class="relative overflow-x-hidden">
+
+    <nav class="fixed w-full z-40 top-0 border-b border-white/5 bg-[#0d0d0d]/80 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                    <i class="fa-solid fa-newspaper text-white text-sm"></i>
+                </div>
+                <span class="font-bold text-lg tracking-tight text-white">Daily News Briefing</span>
+            </div>
+
+            <div class="flex items-center gap-6">
+                <a href="index.html" class="text-sm text-gray-400 hover:text-white transition duration-200">Home</a>
+                <a href="docs.html" class="text-sm text-purple-400 font-semibold">Documentation</a>
+                <a href="https://github.com/ChenziqiAdam/Daily-News-Briefing" target="_blank" class="text-sm text-gray-400 hover:text-white transition">
+                    <i class="fa-brands fa-github"></i> GitHub
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-6 py-24 flex gap-12">
+
+        <!-- Sidebar Navigation -->
+        <aside class="hidden lg:block w-64 flex-shrink-0">
+            <nav class="sidebar-nav">
+                <a href="#overview">Overview</a>
+                <a href="#installation">Installation</a>
+                <a href="#pipelines" class="pl-6">AI Pipelines</a>
+                <a href="#api-setup" class="pl-6">API Setup</a>
+                <a href="#configuration">Configuration</a>
+                <a href="#basic-settings" class="pl-6">Basic Settings</a>
+                <a href="#search-settings" class="pl-6">Search Settings</a>
+                <a href="#output-settings" class="pl-6">Output Settings</a>
+                <a href="#metadata-settings" class="pl-6">Metadata</a>
+                <a href="#templates">Templates</a>
+                <a href="#template-types" class="pl-6">Template Types</a>
+                <a href="#placeholders" class="pl-6">Placeholders</a>
+                <a href="#custom-prompts">Custom Prompts</a>
+                <a href="#usage">Usage</a>
+                <a href="#workflow" class="pl-6">Workflow</a>
+                <a href="#languages">Languages</a>
+                <a href="#troubleshooting">Troubleshooting</a>
+                <a href="#advanced">Advanced</a>
+            </nav>
+        </aside>
+
+        <!-- Main Documentation Content -->
+        <main class="flex-1 max-w-4xl docs-content">
+
+            <h1 class="text-5xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-white to-purple-400">Documentation</h1>
+            <p class="text-xl text-gray-400 mb-12">Complete guide to Daily News Briefing for Obsidian</p>
+
+            <!-- Overview -->
+            <section id="overview">
+                <h2>Overview</h2>
+                <p>Daily News Briefing is an Obsidian plugin that automatically generates AI-powered news summaries on topics you care about, delivered directly to your vault as markdown notes.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 my-8">
+                    <div class="feature-box">
+                        <h5><i class="fa-solid fa-robot"></i> 6 AI Providers</h5>
+                        <p class="text-sm">Choose from Google Gemini (free), OpenAI, Grok, or Perplexity</p>
+                    </div>
+                    <div class="feature-box">
+                        <h5><i class="fa-solid fa-calendar"></i> Auto-Scheduled</h5>
+                        <p class="text-sm">Set your time, wake up to fresh news every morning</p>
+                    </div>
+                    <div class="feature-box">
+                        <h5><i class="fa-solid fa-globe"></i> 6 Languages</h5>
+                        <p class="text-sm">English, French, German, Spanish, Italian, Chinese</p>
+                    </div>
+                </div>
+
+                <h3>How It Works</h3>
+                <div class="mermaid">
+graph LR
+    A[User Topics] --> B{Pipeline Type}
+    B -->|Agentic| C[AI Provider<br/>Perplexity/GPT/Grok]
+    B -->|Search+Summarize| D[Google Search]
+    D --> E[AI Summarizer<br/>Gemini/GPT/Grok]
+    C --> F[Generated News Note]
+    E --> F
+    F --> G[Your Vault]
+
+    style A fill:#a855f7,stroke:#d8b4fe,color:#fff
+    style F fill:#22c55e,stroke:#86efac,color:#fff
+    style G fill:#3b82f6,stroke:#93c5fd,color:#fff
+                </div>
+            </section>
+
+            <!-- Installation -->
+            <section id="installation">
+                <h2>Installation</h2>
+
+                <h3>Step 1: Install from Community Plugins</h3>
+                <ol>
+                    <li>Open Obsidian Settings</li>
+                    <li>Navigate to <strong>Community Plugins</strong> → Turn off <strong>Safe Mode</strong></li>
+                    <li>Click <strong>Browse</strong> → Search for <strong>"Daily News Briefing"</strong></li>
+                    <li>Click <strong>Install</strong> → <strong>Enable</strong></li>
+                </ol>
+
+                <h3 id="pipelines">Step 2: Choose Your AI Pipeline</h3>
+                <p>The plugin supports <strong>6 different AI pipelines</strong> organized into two architectures:</p>
+
+                <h4>Architecture Comparison</h4>
+
+                <p><strong>Option 1: Agentic Search (1 API Key - Simple)</strong></p>
+                <div class="mermaid">
+graph LR
+    A1[Your Topics] --> A2[AI Provider<br/>Perplexity/GPT/Grok]
+    A2 --> A3[Built-in<br/>Web Search]
+    A3 --> A4[AI Analysis &<br/>Summarization]
+    A4 --> A5[Final Summary]
+
+    style A1 fill:#a855f7,stroke:#d8b4fe,color:#fff
+    style A2 fill:#1a1a1a,stroke:#a855f7,color:#e5e5e5
+    style A3 fill:#1a1a1a,stroke:#a855f7,color:#e5e5e5
+    style A4 fill:#1a1a1a,stroke:#a855f7,color:#e5e5e5
+    style A5 fill:#22c55e,stroke:#86efac,color:#fff
+                </div>
+
+                <p><strong>Option 2: Search + Summarize (3 API Keys - Advanced Control)</strong></p>
+                <div class="mermaid">
+graph LR
+    S1[Your Topics] --> S2[Google Search API]
+    S2 --> S3[5 Parallel<br/>Search Queries]
+    S3 --> S4[AI Filtering<br/>& Ranking]
+    S4 --> S5[AI Summarizer<br/>Gemini/GPT/Grok]
+    S5 --> S6[Final Summary]
+
+    style S1 fill:#a855f7,stroke:#d8b4fe,color:#fff
+    style S2 fill:#1a1a1a,stroke:#3b82f6,color:#e5e5e5
+    style S3 fill:#1a1a1a,stroke:#3b82f6,color:#e5e5e5
+    style S4 fill:#1a1a1a,stroke:#3b82f6,color:#e5e5e5
+    style S5 fill:#1a1a1a,stroke:#3b82f6,color:#e5e5e5
+    style S6 fill:#22c55e,stroke:#86efac,color:#fff
+                </div>
+
+                <h4>Agentic Search Providers (1 API Key)</h4>
+                <p>These providers handle both search and summarization with a single API key:</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Provider</th>
+                            <th>Model</th>
+                            <th>Pros</th>
+                            <th>Cons</th>
+                            <th>Best For</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Perplexity</strong><br><span class="badge badge-simple">Simple</span><span class="badge badge-paid">Paid</span></td>
+                            <td><code>sonar</code></td>
+                            <td>• Fast results<br>• Real-time web search<br>• Simple setup</td>
+                            <td>• Requires subscription<br>• Limited customization</td>
+                            <td>Speed & simplicity</td>
+                        </tr>
+                        <tr>
+                            <td><strong>OpenAI GPT</strong><br><span class="badge badge-simple">Simple</span><span class="badge badge-paid">Paid</span></td>
+                            <td><code>gpt-5-search-api</code></td>
+                            <td>• High-quality summaries<br>• Web search built-in<br>• Custom prompts</td>
+                            <td>• Pay-per-use<br>• Higher cost</td>
+                            <td>Quality & accuracy</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Grok (xAI)</strong><br><span class="badge badge-simple">Simple</span><span class="badge badge-paid">Paid</span></td>
+                            <td><code>grok-4-fast</code></td>
+                            <td>• X platform data<br>• Fast processing<br>• Latest model</td>
+                            <td>• Pay-per-use<br>• Newer service</td>
+                            <td>X/Twitter insights</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h4>Search + Summarize Providers (3 API Keys)</h4>
+                <p>These combine Google Custom Search with your choice of AI summarizer:</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Provider</th>
+                            <th>Search</th>
+                            <th>Summarizer</th>
+                            <th>Pros</th>
+                            <th>Best For</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Google + Gemini</strong> ⭐<br><span class="badge badge-free">FREE</span></td>
+                            <td>Google Custom Search</td>
+                            <td><code>gemini-2.5-flash</code></td>
+                            <td>• <strong>Totally free</strong><br>• Advanced filtering<br>• 5 parallel searches<br>• AI-powered ranking</td>
+                            <td>Best free option</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Google + GPT</strong><br><span class="badge badge-paid">Paid</span></td>
+                            <td>Google Custom Search</td>
+                            <td><code>gpt-5-search-api</code></td>
+                            <td>• Advanced control<br>• High quality<br>• Mix-and-match</td>
+                            <td>Power users</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Google + Grok</strong><br><span class="badge badge-paid">Paid</span></td>
+                            <td>Google Custom Search</td>
+                            <td><code>grok-4-fast</code></td>
+                            <td>• Advanced control<br>• Fast processing<br>• Latest AI</td>
+                            <td>xAI enthusiasts</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="alert alert-info">
+                    <strong>💡 Recommendation:</strong> We recommend <strong>Google + Gemini</strong> because it's completely free to operate using Google's generous free tiers. Perfect for getting started!
+                </div>
+
+                <h3 id="api-setup">Step 3: API Setup Guides</h3>
+
+                <h4>Option A: Perplexity (Agentic Search)</h4>
+                <div class="feature-box">
+                    <h5>Setup Steps</h5>
+                    <ol>
+                        <li>Visit <a href="https://perplexity.ai/" target="_blank">Perplexity API</a> and create an account</li>
+                        <li>Navigate to API settings and generate your API key</li>
+                        <li>In plugin settings, choose <strong>"Perplexity (Agentic Search)"</strong></li>
+                        <li>Paste your key in the <strong>"Perplexity API key"</strong> field</li>
+                    </ol>
+                    <p class="text-sm text-gray-400 mt-4"><strong>Model:</strong> Uses <code>sonar</code> with built-in web search capabilities</p>
+                </div>
+
+                <h4>Option B: OpenAI GPT (Agentic Search)</h4>
+                <div class="feature-box">
+                    <h5>Setup Steps</h5>
+                    <ol>
+                        <li>Visit <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI API</a></li>
+                        <li>Create or copy your API key</li>
+                        <li>In plugin settings, choose <strong>"OpenAI GPT (Agentic Search)"</strong></li>
+                        <li>Paste your key in the <strong>"OpenAI API key"</strong> field</li>
+                    </ol>
+                    <p class="text-sm text-gray-400 mt-4"><strong>Model:</strong> Uses <code>gpt-5-search-api</code> with integrated web search</p>
+                </div>
+
+                <h4>Option C: Grok (Agentic Search)</h4>
+                <div class="feature-box">
+                    <h5>Setup Steps</h5>
+                    <ol>
+                        <li>Visit <a href="https://x.ai/" target="_blank">xAI Grok API</a></li>
+                        <li>Generate your API key</li>
+                        <li>In plugin settings, choose <strong>"Grok (Agentic Search)"</strong></li>
+                        <li>Paste your key in the <strong>"Grok API key"</strong> field</li>
+                    </ol>
+                    <p class="text-sm text-gray-400 mt-4"><strong>Model:</strong> Uses <code>grok-4-fast</code> with real-time X platform data</p>
+                </div>
+
+                <h4>Option D: Google Search + Gemini (FREE Recommended)</h4>
+                <div class="feature-box">
+                    <h5>Setup Steps (3 Free API Keys Required)</h5>
+
+                    <p><strong>1. Google Custom Search API Key (FREE):</strong></p>
+                    <ul>
+                        <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
+                        <li>Create a new project or select existing</li>
+                        <li>Enable "Custom Search API"</li>
+                        <li>Go to Credentials → Create Credentials → API Key</li>
+                        <li>Copy the generated API key</li>
+                    </ul>
+
+                    <p><strong>2. Google Search Engine ID (FREE):</strong></p>
+                    <ul>
+                        <li>Visit <a href="https://programmablesearchengine.google.com/controlpanel/all" target="_blank">Programmable Search Engine</a></li>
+                        <li>Click "Add" to create new search engine</li>
+                        <li>Under "Sites to search", select <strong>"Search the entire web"</strong></li>
+                        <li>Create the search engine</li>
+                        <li>Copy the Search Engine ID from the overview page</li>
+                    </ul>
+
+                    <p><strong>3. Gemini API Key (FREE):</strong></p>
+                    <ul>
+                        <li>Go to <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a></li>
+                        <li>Click "Get API Key"</li>
+                        <li>Create or select a project</li>
+                        <li>Copy the generated key</li>
+                    </ul>
+
+                    <p><strong>4. Configure in Plugin:</strong></p>
+                    <ul>
+                        <li>Choose <strong>"Google Search + Gemini Summarizer"</strong> as your News Pipeline</li>
+                        <li>Enter all three keys in their respective fields</li>
+                    </ul>
+
+                    <p class="text-sm text-gray-400 mt-4"><strong>Models:</strong> Google Custom Search API + <code>gemini-2.5-flash</code></p>
+                </div>
+
+                <div class="alert alert-success">
+                    <strong>✅ Free Tier Limits:</strong><br>
+                    • Google Custom Search: 100 queries/day<br>
+                    • Gemini API: 1,500 requests/day (60/minute)<br>
+                    • Perfect for daily news generation!
+                </div>
+
+                <h4>Option E: Google Search + GPT Summarizer</h4>
+                <div class="feature-box">
+                    <h5>Setup Steps</h5>
+                    <p>Requires the same Google keys as Option D, plus:</p>
+                    <ul>
+                        <li><strong>OpenAI API Key:</strong> Get from <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI API</a></li>
+                    </ul>
+                    <p>In plugin settings, choose <strong>"Google Search + GPT Summarizer"</strong> and enter all three keys.</p>
+                </div>
+
+                <h4>Option F: Google Search + Grok Summarizer</h4>
+                <div class="feature-box">
+                    <h5>Setup Steps</h5>
+                    <p>Requires the same Google keys as Option D, plus:</p>
+                    <ul>
+                        <li><strong>Grok API Key:</strong> Get from <a href="https://x.ai/" target="_blank">xAI</a></li>
+                    </ul>
+                    <p>In plugin settings, choose <strong>"Google Search + Grok Summarizer"</strong> and enter all three keys.</p>
+                </div>
+
+            </section>
+
+            <!-- Configuration -->
+            <section id="configuration">
+                <h2>Configuration</h2>
+                <p>Access all settings via: <strong>Settings → Community Plugins → Daily News Briefing → ⚙️</strong></p>
+
+                <h3 id="basic-settings">Basic Settings</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 25%">Setting</th>
+                            <th style="width: 40%">Description</th>
+                            <th style="width: 35%">Example / Options</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>News Pipeline</strong></td>
+                            <td>Choose your AI provider architecture</td>
+                            <td>
+                                • Perplexity (Agentic)<br>
+                                • OpenAI GPT (Agentic)<br>
+                                • Grok (Agentic)<br>
+                                • Google + Gemini ⭐<br>
+                                • Google + GPT<br>
+                                • Google + Grok
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Topics</strong></td>
+                            <td>Comma-separated list of topics you want to track. Be specific for better results.</td>
+                            <td><code>AI, Tesla Stock, Bitcoin, Climate Change</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Schedule Time</strong></td>
+                            <td>Daily generation time in 24-hour format (HH:MM). Plugin must be loaded.</td>
+                            <td><code>08:00</code> (8 AM)<br><code>17:30</code> (5:30 PM)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Language</strong></td>
+                            <td>Language for news content and UI text (ISO 639-1 code)</td>
+                            <td>
+                                • <code>en</code> English<br>
+                                • <code>fr</code> Français<br>
+                                • <code>de</code> Deutsch<br>
+                                • <code>es</code> Español<br>
+                                • <code>it</code> Italiano<br>
+                                • <code>zh</code> 中文
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Archive Folder</strong></td>
+                            <td>Folder path where news notes are saved. Created automatically if doesn't exist.</td>
+                            <td><code>News Archive</code><br><code>Daily/News</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 id="search-settings">Search Settings (Google Providers Only)</h3>
+                <div class="alert alert-info">
+                    <strong>ℹ️ Note:</strong> These settings only apply when using Google Search + Summarizer pipelines.
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 30%">Setting</th>
+                            <th style="width: 45%">Description</th>
+                            <th style="width: 25%">Default / Range</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Results per Topic</strong></td>
+                            <td>Number of news items to include in final summary for each topic</td>
+                            <td><strong>5</strong><br>Range: 3-15</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Max Search Results</strong></td>
+                            <td>Maximum search results to fetch before AI filtering and ranking</td>
+                            <td><strong>30</strong><br>Range: 10-50</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Search Date Range</strong></td>
+                            <td>Filter results by recency:<br>
+                                • <code>d1</code> = yesterday<br>
+                                • <code>d3</code> = last 3 days<br>
+                                • <code>w1</code> = last week<br>
+                                • <code>m1</code> = last month
+                            </td>
+                            <td><strong>d1</strong> (yesterday)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Use AI for Search Queries</strong></td>
+                            <td>Let Gemini generate optimized search queries using 5 parallel strategies (optimized, specific, broad, recent, simple)</td>
+                            <td><strong>Enabled</strong> ✅<br>Toggle on/off</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Use AI News Judgment</strong></td>
+                            <td>Let AI select the most relevant news items from search results. Improves quality significantly.</td>
+                            <td><strong>Enabled</strong> ✅<br>Toggle on/off</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Custom AI Judge Prompt</strong></td>
+                            <td>Override the default AI judgment prompt. Use placeholders:<br>
+                                • <code>{{NEWS_TEXT}}</code> - The news list<br>
+                                • <code>{{TOPIC}}</code> - Current topic
+                            </td>
+                            <td>Empty (uses default)<br><em>See Custom Prompts section</em></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="alert alert-success">
+                    <strong>💡 Performance Tip:</strong> The Google + AI pipeline runs 5 parallel search queries:<br>
+                    1. <strong>Optimized</strong> - AI-generated with optimal keywords<br>
+                    2. <strong>Specific</strong> - Exact phrase matching<br>
+                    3. <strong>Broad</strong> - Wide search for coverage<br>
+                    4. <strong>Recent</strong> - Time-filtered latest developments<br>
+                    5. <strong>Simple</strong> - Basic query as fallback<br><br>
+                    Results are deduplicated, filtered by quality sources, and ranked by AI for best results.
+                </div>
+
+                <h3 id="output-settings">Output Settings</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 30%">Setting</th>
+                            <th style="width: 50%">Description</th>
+                            <th style="width: 20%">Options</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Output Format</strong></td>
+                            <td>Level of detail in summaries:<br>
+                                • <strong>Detailed</strong> - Full summaries with context and analysis<br>
+                                • <strong>Concise</strong> - Brief bullet points only
+                            </td>
+                            <td><code>detailed</code><br><code>concise</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Enable Analysis & Context</strong></td>
+                            <td>Include a detailed analysis section after key developments with insights, trends, and implications</td>
+                            <td>Toggle<br>(default: enabled)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Enable Notifications</strong></td>
+                            <td>Show desktop notifications when news is successfully generated or if errors occur</td>
+                            <td>Toggle<br>(default: enabled)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Custom AI Prompt</strong></td>
+                            <td>Override the default summarization prompt. Use <code>{{NEWS_TEXT}}</code> placeholder for the news content.<br><em>See Custom Prompts section for examples</em></td>
+                            <td>Text input<br>(optional)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 id="metadata-settings">Metadata Settings</h3>
+                <p>Control what appears in the YAML frontmatter of generated notes:</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 30%">Setting</th>
+                            <th style="width: 50%">Description</th>
+                            <th style="width: 20%">Output Example</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Enable Metadata</strong></td>
+                            <td>Master toggle for YAML frontmatter generation</td>
+                            <td>Toggle on/off</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Include Date</strong></td>
+                            <td>Add date field to frontmatter</td>
+                            <td><code>date: "2026-01-08"</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Include Time</strong></td>
+                            <td>Add time field to frontmatter</td>
+                            <td><code>time: "09:54:19"</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Include Topics</strong></td>
+                            <td>Add topics array to frontmatter</td>
+                            <td><code>topics: ["AI", "Tesla"]</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Include Tags</strong></td>
+                            <td>Generate Obsidian tags from topics</td>
+                            <td><code>tags: ["#ai", "#tesla"]</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Include Language</strong></td>
+                            <td>Add language code to frontmatter</td>
+                            <td><code>language: "en"</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Include Provider</strong></td>
+                            <td>Show which AI provider was used</td>
+                            <td><code>provider: "google-gemini"</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Include Processing Time</strong></td>
+                            <td>Add generation timestamp</td>
+                            <td><code>generated: "2026-01-08T09:54:19"</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p><strong>Example Complete Metadata:</strong></p>
+                <pre><code>---
+date: "2026-01-08"
+time: "09:54:19"
+topics: ["AI", "Tesla", "Bitcoin"]
+tags: ["#ai", "#tesla", "#bitcoin"]
+language: "en"
+provider: "google-gemini"
+generated: "2026-01-08T09:54:19Z"
+---</code></pre>
+            </section>
+
+            <!-- Templates -->
+            <section id="templates">
+                <h2>Templates</h2>
+                <p>Customize how your daily news notes are formatted using one of 5 template options with 25 dynamic placeholders.</p>
+
+                <h3 id="template-types">Template Types</h3>
+
+                <div class="grid grid-cols-1 gap-4 my-6">
+                    <div class="feature-box">
+                        <h5>1. Default Template</h5>
+                        <p>Standard format with full structure including metadata, table of contents, and timestamps.</p>
+                        <pre><code>---
+{{METADATA}}
+---
+
+# Daily News Briefing
+*Generated at {{TIMESTAMP}}*
+
+## Table of Contents
+{{TABLE_OF_CONTENTS}}
+
+{{TOPICS}}
+
+{{PROCESSING_STATUS}}</code></pre>
+                    </div>
+
+                    <div class="feature-box">
+                        <h5>2. Minimal Template</h5>
+                        <p>Compact layout with essential information only (no TOC or extra metadata).</p>
+                        <pre><code># Daily News - {{DATE}}
+{{TOPICS}}</code></pre>
+                    </div>
+
+                    <div class="feature-box">
+                        <h5>3. Detailed Template</h5>
+                        <p>Extended format with comprehensive metadata and section separators.</p>
+                        <pre><code>---
+{{METADATA}}
+---
+
+# 📰 Daily News Briefing
+**Date:** {{DATE}} | **Time:** {{TIME}} | **Language:** {{LANGUAGE}}
+
+---
+
+## 📑 Table of Contents
+{{TABLE_OF_CONTENTS}}
+
+---
+
+{{TOPICS}}
+
+---
+
+{{PROCESSING_STATUS}}</code></pre>
+                    </div>
+
+                    <div class="feature-box">
+                        <h5>4. Custom Template</h5>
+                        <p>Write your own template using any combination of the 25 available placeholders. The plugin validates your template in real-time.</p>
+                        <div class="alert alert-warning">
+                            <strong>⚠️ Important:</strong> Your custom template must include <code>{{TOPICS}}</code> placeholder, otherwise no news content will be displayed!
+                        </div>
+                    </div>
+
+                    <div class="feature-box">
+                        <h5>5. Template File</h5>
+                        <p>Load a template from a note in your vault. Perfect for:</p>
+                        <ul>
+                            <li>Keeping your template version-controlled with your notes</li>
+                            <li>Editing templates with Obsidian's full editing features</li>
+                            <li>Sharing templates across multiple vaults</li>
+                        </ul>
+                        <p class="text-sm">Simply specify the path to your template note (e.g., <code>Templates/news-template.md</code>)</p>
+                    </div>
+                </div>
+
+                <h3 id="placeholders">Available Placeholders (25 Total)</h3>
+                <p>All placeholders are case-sensitive and must be wrapped in double curly braces: <code>{{PLACEHOLDER_NAME}}</code></p>
+
+                <h4>Basic Placeholders (8)</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 30%">Placeholder</th>
+                            <th style="width: 45%">Description</th>
+                            <th style="width: 25%">Example Output</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>{{METADATA}}</code></td>
+                            <td>Complete YAML frontmatter block (based on metadata settings)</td>
+                            <td><em>See metadata section</em></td>
+                        </tr>
+                        <tr>
+                            <td><code>{{TIMESTAMP}}</code></td>
+                            <td>Full datetime of generation</td>
+                            <td><code>2026-01-08 09:54:19</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>{{DATE}}</code></td>
+                            <td>Date in YYYY-MM-DD format</td>
+                            <td><code>2026-01-08</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>{{TIME}}</code></td>
+                            <td>Time in HH:MM:SS format (24-hour)</td>
+                            <td><code>09:54:19</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>{{TABLE_OF_CONTENTS}}</code></td>
+                            <td>Auto-generated table of contents with links to each topic section</td>
+                            <td><code>- [[#AI]]<br>- [[#Tesla]]</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>{{TOPICS}}</code> ⚠️</td>
+                            <td><strong>REQUIRED:</strong> All news content organized by topic with summaries</td>
+                            <td><em>Complete news sections</em></td>
+                        </tr>
+                        <tr>
+                            <td><code>{{PROCESSING_STATUS}}</code></td>
+                            <td>Errors or warnings if any occurred during generation</td>
+                            <td>Empty if successful, or error details</td>
+                        </tr>
+                        <tr>
+                            <td><code>{{LANGUAGE}}</code></td>
+                            <td>ISO 639-1 language code</td>
+                            <td><code>en</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h4>Date/Time Fine-Grained (10)</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 30%">Placeholder</th>
+                            <th style="width: 45%">Description</th>
+                            <th style="width: 25%">Example</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>{{YEAR}}</code></td><td>4-digit year</td><td><code>2026</code></td></tr>
+                        <tr><td><code>{{MONTH}}</code></td><td>2-digit month (01-12)</td><td><code>01</code></td></tr>
+                        <tr><td><code>{{MONTH_NAME}}</code></td><td>Full month name</td><td><code>January</code></td></tr>
+                        <tr><td><code>{{MONTH_NAME_SHORT}}</code></td><td>3-letter month abbreviation</td><td><code>Jan</code></td></tr>
+                        <tr><td><code>{{DAY}}</code></td><td>2-digit day of month (01-31)</td><td><code>08</code></td></tr>
+                        <tr><td><code>{{DAY_NAME}}</code></td><td>Full day name</td><td><code>Wednesday</code></td></tr>
+                        <tr><td><code>{{DAY_NAME_SHORT}}</code></td><td>3-letter day abbreviation</td><td><code>Wed</code></td></tr>
+                        <tr><td><code>{{HOUR}}</code></td><td>2-digit hour in 24-hour format (00-23)</td><td><code>09</code></td></tr>
+                        <tr><td><code>{{MINUTE}}</code></td><td>2-digit minute (00-59)</td><td><code>54</code></td></tr>
+                        <tr><td><code>{{SECOND}}</code></td><td>2-digit second (00-59)</td><td><code>19</code></td></tr>
+                    </tbody>
+                </table>
+
+                <h4>Metadata-Specific (5)</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 35%">Placeholder</th>
+                            <th style="width: 65%">Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>{{METADATA_DATE}}</code></td><td>Date in YAML metadata format (YYYY-MM-DD)</td></tr>
+                        <tr><td><code>{{METADATA_TIME}}</code></td><td>Time in YAML metadata format (HH:MM:SS)</td></tr>
+                        <tr><td><code>{{METADATA_TAGS}}</code></td><td>Array of tags generated from topics: <code>["#ai", "#tesla"]</code></td></tr>
+                        <tr><td><code>{{METADATA_LANGUAGE}}</code></td><td>Language code in metadata format</td></tr>
+                        <tr><td><code>{{METADATA_PROVIDER}}</code></td><td>AI provider identifier (e.g., "google-gemini", "openai-gpt", "grok")</td></tr>
+                    </tbody>
+                </table>
+
+                <h4>Topic Information (2)</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 30%">Placeholder</th>
+                            <th style="width: 45%">Description</th>
+                            <th style="width: 25%">Example</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>{{TOPIC_COUNT}}</code></td><td>Number of topics being tracked</td><td><code>3</code></td></tr>
+                        <tr><td><code>{{TOPIC_LIST}}</code></td><td>Comma-separated list of topic names</td><td><code>AI, Tesla, Bitcoin</code></td></tr>
+                    </tbody>
+                </table>
+
+                <div class="alert alert-success">
+                    <strong>✅ Template Validation:</strong> The plugin automatically validates your custom templates and warns if you:<br>
+                    • Use unknown placeholders<br>
+                    • Forget to include <code>{{TOPICS}}</code> (required for content)<br>
+                    • Have empty template content
+                </div>
+
+                <h4>Example Custom Template</h4>
+                <pre><code># 📰 {{DAY_NAME}}, {{MONTH_NAME}} {{DAY}}, {{YEAR}}
+
+> Daily news digest generated at {{TIME}}
+> Tracking {{TOPIC_COUNT}} topics: {{TOPIC_LIST}}
+
+---
+
+{{TOPICS}}
+
+---
+
+*Generated by Daily News Briefing using {{METADATA_PROVIDER}}*
+*Language: {{LANGUAGE}}*</code></pre>
+            </section>
+
+            <!-- Custom Prompts -->
+            <section id="custom-prompts">
+                <h2>Custom Prompts</h2>
+                <p>You can override the default AI prompts to customize how news is analyzed and summarized.</p>
+
+                <h3>Summarization Prompt (All Providers)</h3>
+                <p>Controls how the AI summarizes news content. Available placeholder:</p>
+                <ul>
+                    <li><code>{{NEWS_TEXT}}</code> - The news articles or content to be summarized</li>
+                </ul>
+
+                <div class="feature-box">
+                    <h5>Example 1: Focus on Breaking News</h5>
+                    <pre><code>Analyze the following news and extract only breaking news and major announcements.
+Ignore opinion pieces, analysis articles, and minor updates.
+
+News content:
+{{NEWS_TEXT}}
+
+Format as bullet points with:
+- Bold headline
+- 2-3 sentence summary
+- Source link with date</code></pre>
+                </div>
+
+                <div class="feature-box">
+                    <h5>Example 2: Technical Focus</h5>
+                    <pre><code>From the following news, extract technical details and specifications.
+Focus on: product releases, technical breakthroughs, and research findings.
+
+{{NEWS_TEXT}}
+
+For each item include:
+- Technical specifications
+- Key innovations
+- Potential impact on industry</code></pre>
+                </div>
+
+                <div class="feature-box">
+                    <h5>Example 3: Investment Focus</h5>
+                    <pre><code>Analyze this news from an investor's perspective:
+
+{{NEWS_TEXT}}
+
+For each news item, provide:
+- Market impact assessment
+- Key financial metrics mentioned
+- Investment implications
+- Risk factors</code></pre>
+                </div>
+
+                <h3>AI Judge Prompt (Google Providers Only)</h3>
+                <p>Controls how AI selects the best news items from search results. Available placeholders:</p>
+                <ul>
+                    <li><code>{{NEWS_TEXT}}</code> - The list of news items to evaluate</li>
+                    <li><code>{{TOPIC}}</code> - The current topic being processed</li>
+                </ul>
+
+                <div class="feature-box">
+                    <h5>Example 1: Quality Filter</h5>
+                    <pre><code>Select the 5 most significant and credible news items about {{TOPIC}} from the list below.
+
+Prioritize:
+- Breaking news from reputable sources
+- Major company announcements
+- Research papers and studies
+- Expert analysis
+
+Exclude:
+- Opinion pieces and editorials
+- Social media posts
+- Advertisements and sponsored content
+- Duplicate or similar stories
+
+News list:
+{{NEWS_TEXT}}</code></pre>
+                </div>
+
+                <div class="feature-box">
+                    <h5>Example 2: Diverse Perspective</h5>
+                    <pre><code>From the following news about {{TOPIC}}, select 5 items that provide diverse perspectives.
+
+Ensure variety in:
+- Geographic regions (US, EU, Asia, etc.)
+- Source types (mainstream, tech blogs, financial, research)
+- Viewpoints (bullish, bearish, neutral)
+
+{{NEWS_TEXT}}
+
+Return items that together give a balanced, comprehensive view.</code></pre>
+                </div>
+
+                <h3>Tips for Writing Effective Prompts</h3>
+                <ul>
+                    <li><strong>Be specific:</strong> Clearly state what you want included and excluded</li>
+                    <li><strong>Use structure:</strong> Request specific formats (bullet points, tables, etc.)</li>
+                    <li><strong>Set priorities:</strong> Tell the AI what matters most</li>
+                    <li><strong>Include examples:</strong> Show the AI what good output looks like</li>
+                    <li><strong>Test iteratively:</strong> Start simple and refine based on results</li>
+                </ul>
+            </section>
+
+            <!-- Usage -->
+            <section id="usage">
+                <h2>Usage</h2>
+
+                <h3>Automatic Mode (Recommended)</h3>
+                <p>Once configured, the plugin automatically generates news at your scheduled time:</p>
+                <ol>
+                    <li>Set your schedule time in settings (e.g., <code>08:00</code>)</li>
+                    <li>Keep Obsidian running or open it after the scheduled time</li>
+                    <li>Find your briefings in the configured Archive Folder</li>
+                </ol>
+
+                <div class="alert alert-info">
+                    <strong>ℹ️ Note:</strong> Obsidian must be running for automatic generation. If closed, the plugin will generate news when you next open Obsidian (if after the scheduled time).
+                </div>
+
+                <h3>Manual Generation</h3>
+                <p>Generate news on-demand using two methods:</p>
+
+                <h4>Method 1: Command Palette</h4>
+                <ol>
+                    <li>Press <code>Ctrl/Cmd + P</code> to open command palette</li>
+                    <li>Type "Generate news now"</li>
+                    <li>Press Enter</li>
+                </ol>
+
+                <h4>Method 2: Sidebar Button</h4>
+                <p>Click the 📰 icon in the left sidebar.</p>
+                <p><strong>Smart behavior:</strong></p>
+                <ul>
+                    <li>If today's news exists → <strong>Opens it</strong></li>
+                    <li>If today's news doesn't exist → <strong>Creates it</strong></li>
+                </ul>
+
+                <h3 id="workflow">Complete Workflow</h3>
+                <div class="mermaid">
+graph TD
+    A[Scheduled Time / Manual Trigger] --> B{Today's Note Exists?}
+    B -->|Yes| C[Open Existing Note]
+    B -->|No| D[Start Generation]
+
+    D --> E{Pipeline Type?}
+    E -->|Agentic| F[AI Provider Search]
+    E -->|Search+Summarize| G[Google Search]
+
+    F --> H[AI Summarization]
+    G --> I[5 Parallel Queries]
+    I --> J[AI Filtering & Ranking]
+    J --> K[AI Summarization]
+
+    H --> L[Apply Template]
+    K --> L
+
+    L --> M[Generate Markdown]
+    M --> N[Add Metadata]
+    N --> O[Save to Vault]
+    O --> P[Show Notification]
+    P --> Q[Open Note]
+
+    style A fill:#a855f7,stroke:#d8b4fe,color:#fff
+    style O fill:#22c55e,stroke:#86efac,color:#fff
+    style Q fill:#3b82f6,stroke:#93c5fd,color:#fff
+                </div>
+
+                <h3>File Naming & Organization</h3>
+                <p><strong>Automatic naming:</strong> Notes are named <code>YYYY-MM-DD.md</code></p>
+                <p><strong>Examples:</strong></p>
+                <ul>
+                    <li><code>2026-01-08.md</code> - January 8, 2026</li>
+                    <li><code>2026-12-25.md</code> - December 25, 2026</li>
+                </ul>
+
+                <p><strong>Folder structure:</strong></p>
+                <pre><code>Your Vault/
+└── News Archive/        (or your configured folder)
+    ├── 2026-01-08.md
+    ├── 2026-01-07.md
+    ├── 2026-01-06.md
+    └── ...</code></pre>
+
+                <div class="alert alert-success">
+                    <strong>💡 Pro Tip:</strong> Use Obsidian's Daily Notes plugin alongside this for seamless integration. Link to news from your daily notes for quick reference!
+                </div>
+            </section>
+
+            <!-- Languages -->
+            <section id="languages">
+                <h2>Language Support</h2>
+                <p>The plugin supports <strong>6 languages</strong> with full content translation:</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Language</th>
+                            <th>Code (ISO 639-1)</th>
+                            <th>Native Name</th>
+                            <th>Coverage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>English</strong></td>
+                            <td><code>en</code></td>
+                            <td>English</td>
+                            <td>Full</td>
+                        </tr>
+                        <tr>
+                            <td><strong>French</strong></td>
+                            <td><code>fr</code></td>
+                            <td>Français</td>
+                            <td>Full</td>
+                        </tr>
+                        <tr>
+                            <td><strong>German</strong></td>
+                            <td><code>de</code></td>
+                            <td>Deutsch</td>
+                            <td>Full</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Spanish</strong></td>
+                            <td><code>es</code></td>
+                            <td>Español</td>
+                            <td>Full</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Italian</strong></td>
+                            <td><code>it</code></td>
+                            <td>Italiano</td>
+                            <td>Full</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Chinese</strong></td>
+                            <td><code>zh</code></td>
+                            <td>中文</td>
+                            <td>Full</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>What Gets Translated</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 40%">Element</th>
+                            <th style="width: 60%">Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>News Content</strong></td>
+                            <td>All news summaries, headlines, and descriptions are translated to your selected language</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Section Headers</strong></td>
+                            <td>"Key Developments", "Analysis & Context", "Processing Status" - all localized</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Status Messages</strong></td>
+                            <td>Error messages, notifications, and system text</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Metadata Labels</strong></td>
+                            <td>YAML frontmatter field names (optional - usually kept in English for compatibility)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Implementation Details</h3>
+                <p>The AI is instructed to respond in your selected language using ISO 639-1 codes. All UI text is automatically localized with fallback to English if a translation is missing.</p>
+
+                <div class="alert alert-warning">
+                    <strong>⚠️ Note:</strong> If you select an unsupported language, you'll receive a warning notification and the plugin will default to English.
+                </div>
+            </section>
+
+            <!-- Troubleshooting -->
+            <section id="troubleshooting">
+                <h2>Troubleshooting</h2>
+
+                <h3>"No news generated" or Empty Content</h3>
+                <div class="feature-box">
+                    <h5>Possible Causes & Solutions</h5>
+                    <ol>
+                        <li><strong>API Key Issues:</strong>
+                            <ul>
+                                <li>Check that API keys are correctly entered (no extra spaces)</li>
+                                <li>Verify keys are active and haven't expired</li>
+                                <li>For Google providers, ensure all 3 keys are entered</li>
+                            </ul>
+                        </li>
+                        <li><strong>Topics Not Configured:</strong>
+                            <ul>
+                                <li>Ensure topics are comma-separated</li>
+                                <li>Topics should be specific (not too broad)</li>
+                            </ul>
+                        </li>
+                        <li><strong>Network Issues:</strong>
+                            <ul>
+                                <li>Verify your internet connection</li>
+                                <li>Check if API endpoints are accessible</li>
+                            </ul>
+                        </li>
+                        <li><strong>Debug:</strong>
+                            <ul>
+                                <li>Try manual generation first to see detailed errors</li>
+                                <li>Open Obsidian console (<code>Ctrl/Cmd + Shift + I</code>)</li>
+                                <li>Look for error messages in the console</li>
+                            </ul>
+                        </li>
+                    </ol>
+                </div>
+
+                <h3>"API Error" Messages</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 30%">Error Type</th>
+                            <th style="width: 70%">Solutions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Invalid API Key</strong></td>
+                            <td>
+                                • Double-check you copied the complete key<br>
+                                • Regenerate the API key from the provider<br>
+                                • Ensure no extra spaces before/after the key
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Insufficient Credits</strong></td>
+                            <td>
+                                • Verify your API account has available credits/quota<br>
+                                • Check billing status in provider dashboard<br>
+                                • For Google: Check quota usage in Cloud Console
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Rate Limiting</strong></td>
+                            <td>
+                                • Wait 5-10 minutes and try again<br>
+                                • Reduce "Max Search Results" in settings<br>
+                                • Spread out manual generations
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Google Search Quota Exceeded</strong></td>
+                            <td>
+                                • Free tier has 100 queries/day limit<br>
+                                • Reduce "Results per Topic" setting<br>
+                                • Disable "Use AI for Search Queries" temporarily<br>
+                                • Wait until next day for quota reset
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Timeout Errors</strong></td>
+                            <td>
+                                • Check internet connection stability<br>
+                                • Try a different AI provider<br>
+                                • Reduce number of topics<br>
+                                • Reduce "Max Search Results"
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>"Template Validation Failed"</h3>
+                <div class="feature-box">
+                    <h5>Solutions</h5>
+                    <ul>
+                        <li><strong>Missing {{TOPICS}}:</strong> Ensure your custom template includes <code>{{TOPICS}}</code> placeholder</li>
+                        <li><strong>Typos in placeholders:</strong> Check for typos (placeholders are case-sensitive)</li>
+                        <li><strong>Unknown placeholders:</strong> Remove any placeholders not listed in documentation</li>
+                        <li><strong>Empty template:</strong> Template cannot be completely empty</li>
+                        <li><strong>Test:</strong> Switch to a preset template to verify the issue</li>
+                    </ul>
+                </div>
+
+                <h3>Plugin Not Working After Update</h3>
+                <ol>
+                    <li>Reload Obsidian (<code>Ctrl/Cmd + R</code>)</li>
+                    <li>Disable and re-enable the plugin in settings</li>
+                    <li>Check for new plugin updates (Settings → Community Plugins)</li>
+                    <li>Clear Obsidian cache (Settings → About → Show debug info → Clear cache)</li>
+                    <li>If issue persists, create a GitHub issue with error logs</li>
+                </ol>
+
+                <h3>News Quality Issues</h3>
+                <div class="feature-box">
+                    <h5>For Google-Based Providers:</h5>
+                    <ul>
+                        <li>✅ Enable "Use AI for Search Queries" for better search optimization</li>
+                        <li>✅ Enable "Use AI News Judgment" for better content selection</li>
+                        <li>Adjust "Results per Topic" (try 7-10 for better coverage)</li>
+                        <li>Shorten date range (use <code>d1</code> for most recent news)</li>
+                        <li>Use more specific topics (e.g., "NVIDIA stock news" instead of "technology")</li>
+                    </ul>
+
+                    <h5>For All Providers:</h5>
+                    <ul>
+                        <li>Be more specific with topics</li>
+                        <li>Try different AI providers to compare quality</li>
+                        <li>Use custom prompts to guide the AI's focus</li>
+                        <li>Adjust output format (detailed vs concise)</li>
+                    </ul>
+                </div>
+
+                <h3>Getting Help</h3>
+                <p>If you're still experiencing issues:</p>
+                <ol>
+                    <li>📖 Check <a href="https://github.com/ChenziqiAdam/Daily-News-Briefing/issues" target="_blank">GitHub Issues</a> for similar problems</li>
+                    <li>🐛 Create a new issue with:
+                        <ul>
+                            <li>Your settings (hide API keys!)</li>
+                            <li>Error messages from console</li>
+                            <li>Steps to reproduce</li>
+                            <li>Expected vs actual behavior</li>
+                        </ul>
+                    </li>
+                </ol>
+            </section>
+
+            <!-- Advanced Features -->
+            <section id="advanced">
+                <h2>Advanced Features</h2>
+
+                <h3>Google Search Optimization</h3>
+                <p>When using Google + Summarizer pipelines, the plugin implements a sophisticated multi-strategy search approach:</p>
+
+                <div class="mermaid">
+graph LR
+    A[Your Topic] --> B[Query Generator]
+    B --> C1[Optimized Query]
+    B --> C2[Specific Query]
+    B --> C3[Broad Query]
+    B --> C4[Recent Query]
+    B --> C5[Simple Query]
+
+    C1 --> D[Google Search]
+    C2 --> D
+    C3 --> D
+    C4 --> D
+    C5 --> D
+
+    D --> E[Deduplication]
+    E --> F[Quality Filtering]
+    F --> G[AI Ranking]
+    G --> H[Top N Results]
+
+    style A fill:#a855f7,stroke:#d8b4fe,color:#fff
+    style H fill:#22c55e,stroke:#86efac,color:#fff
+                </div>
+
+                <h4>5 Parallel Search Strategies</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Strategy</th>
+                            <th>Purpose</th>
+                            <th>Example</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Optimized</strong></td>
+                            <td>AI-generated query with optimal keywords and operators</td>
+                            <td><code>"Tesla stock" OR "TSLA" earnings OR revenue 2026</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Specific</strong></td>
+                            <td>Exact phrase matching for precision</td>
+                            <td><code>"Tesla stock news" "January 2026"</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Broad</strong></td>
+                            <td>Wide search for comprehensive coverage</td>
+                            <td><code>Tesla automotive stock market</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Recent</strong></td>
+                            <td>Time-filtered for latest developments</td>
+                            <td><code>Tesla stock latest breaking</code> + date:d1</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Simple</strong></td>
+                            <td>Basic query as fallback</td>
+                            <td><code>Tesla stock</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Quality Source Filtering</h3>
+                <p>The plugin includes a curated list of high-quality news sources. Results from these sources are prioritized:</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Sources</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>General News</strong></td>
+                            <td>BBC, Reuters, AP News, The Guardian, NPR, PBS</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Technology</strong></td>
+                            <td>TechCrunch, Ars Technica, The Verge, Wired, MIT Technology Review</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Business</strong></td>
+                            <td>Bloomberg, Financial Times, Wall Street Journal, Forbes, The Economist</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Science</strong></td>
+                            <td>Nature, Science Magazine, Scientific American, New Scientist</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Performance Optimization Tips</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 30%">Goal</th>
+                            <th style="width: 70%">Recommendation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Speed</strong></td>
+                            <td>
+                                • Use Perplexity or Grok agentic search<br>
+                                • Reduce "Results per Topic" to 3-5<br>
+                                • Use concise output format
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Cost</strong></td>
+                            <td>
+                                • Use Google + Gemini (free tier)<br>
+                                • Reduce "Max Search Results"<br>
+                                • Disable "Use AI for Search Queries" if needed
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Quality</strong></td>
+                            <td>
+                                • Use Google + GPT with AI features enabled<br>
+                                • Enable "Use AI News Judgment"<br>
+                                • Use custom prompts for focus<br>
+                                • Increase "Results per Topic" to 7-10
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Coverage</strong></td>
+                            <td>
+                                • Increase "Results per Topic" to 10-15<br>
+                                • Increase "Max Search Results" to 40-50<br>
+                                • Use broader date range (w1 or m1)
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Focus</strong></td>
+                            <td>
+                                • Use custom prompts with specific instructions<br>
+                                • Be very specific with topics<br>
+                                • Use custom AI judge prompt
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>API Rate Limits & Quotas</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Provider</th>
+                            <th>Free Tier Limit</th>
+                            <th>Paid Tier</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Google Custom Search</strong></td>
+                            <td>100 queries/day</td>
+                            <td>$5 per 1000 queries</td>
+                            <td>Shared across all Google projects</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Gemini API</strong></td>
+                            <td>1,500 requests/day<br>60 requests/minute</td>
+                            <td>Pay-as-you-go</td>
+                            <td>Token limits apply (~32K context)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>OpenAI GPT</strong></td>
+                            <td>No free tier</td>
+                            <td>Pay-per-use</td>
+                            <td>Varies by model</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Perplexity</strong></td>
+                            <td>No free tier</td>
+                            <td>Subscription</td>
+                            <td>Check current pricing</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Grok (xAI)</strong></td>
+                            <td>No free tier</td>
+                            <td>Pay-per-use</td>
+                            <td>Check current pricing</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="alert alert-info">
+                    <strong>💡 Quota Management:</strong> For daily news generation with 3 topics, Google + Gemini typically uses:<br>
+                    • ~15-25 Google Search queries (well within 100/day limit)<br>
+                    • ~5-10 Gemini API calls (well within 1,500/day limit)
+                </div>
+            </section>
+
+            <!-- Footer -->
+            <div class="mt-20 pt-12 border-t border-white/10">
+                <div class="flex items-center justify-between flex-wrap gap-4">
+                    <div>
+                        <p class="text-gray-400 mb-2">Need more help?</p>
+                        <div class="flex gap-4 flex-wrap">
+                            <a href="https://github.com/ChenziqiAdam/Daily-News-Briefing/issues" class="text-purple-400 hover:text-purple-300">Report an Issue</a>
+                            <a href="https://github.com/ChenziqiAdam/Daily-News-Briefing" class="text-purple-400 hover:text-purple-300">View on GitHub</a>
+                            <a href="https://www.buymeacoffee.com/adamchen" class="text-purple-400 hover:text-purple-300">Support Development</a>
+                        </div>
+                    </div>
+                    <a href="#overview" class="px-6 py-2 bg-purple-600 text-white rounded hover:bg-purple-500 transition">
+                        Back to Top
+                    </a>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <footer class="border-t border-white/5 bg-[#0a0a0a] py-8 px-6 mt-24">
+        <div class="max-w-7xl mx-auto text-center text-gray-500 text-sm">
+            <p>Daily News Briefing for Obsidian - Open Source (MIT License)</p>
+            <p class="mt-2">Built with ❤️ by <a href="https://github.com/ChenziqiAdam" class="text-purple-400 hover:text-purple-300">@ChenziqiAdam</a></p>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Mermaid with dark theme
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            themeVariables: {
+                primaryColor: '#a855f7',
+                primaryTextColor: '#fff',
+                primaryBorderColor: '#d8b4fe',
+                lineColor: '#d8b4fe',
+                secondaryColor: '#3b82f6',
+                tertiaryColor: '#22c55e',
+                background: '#1a1a1a',
+                mainBkg: '#1a1a1a',
+                secondBkg: '#0d0d0d',
+                textColor: '#e5e5e5',
+                fontSize: '14px'
+            }
+        });
+
+        // Smooth scroll and active link tracking
+        document.addEventListener('DOMContentLoaded', function() {
+            const links = document.querySelectorAll('.sidebar-nav a');
+            const sections = document.querySelectorAll('section[id], h3[id], h4[id]');
+
+            function setActiveLink() {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    const scrollPos = window.scrollY + 100;
+                    if (scrollPos >= sectionTop) {
+                        current = section.getAttribute('id');
+                    }
+                });
+
+                links.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === '#' + current) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+
+            window.addEventListener('scroll', setActiveLink);
+            setActiveLink();
+        });
+    </script>
+
+</body>
+</html>
