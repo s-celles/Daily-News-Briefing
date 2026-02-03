@@ -6,7 +6,7 @@ import { NewsProviderFactory } from './src/providers/news-provider-factory';
 import type { BaseNewsProvider } from './src/providers/base-news-provider';
 import { FileUtils, LanguageUtils, ContentUtils, MetadataUtils } from './src/utils';
 import { LANGUAGE_TRANSLATIONS } from './src/constants';
-import { TemplateEngine } from './src/template-engine';
+import { TemplateEngine } from './src/template/template-engine';
 
 export default class DailyNewsPlugin extends Plugin {
     settings: DailyNewsSettings;

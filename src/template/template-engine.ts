@@ -1,4 +1,4 @@
-import type { TemplateData } from './types';
+import type { TemplateData } from '../types';
 import { TEMPLATE_PRESETS } from './template-presets';
 import type { App } from 'obsidian';
 

@@ -2,8 +2,8 @@ import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
 import type { DailyNewsSettings } from './types';
 import type DailyNewsPlugin from '../main';
 import { LANGUAGE_NAMES } from './constants';
-import { TemplateEngine } from './template-engine';
-import { TEMPLATE_DESCRIPTIONS, TEMPLATE_EXAMPLE } from './template-presets';
+import { TemplateEngine } from './template/template-engine';
+import { TEMPLATE_DESCRIPTIONS, TEMPLATE_EXAMPLE } from './template/template-presets';
 
 export class DailyNewsSettingTab extends PluginSettingTab {
     plugin: DailyNewsPlugin;
