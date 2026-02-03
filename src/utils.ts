@@ -96,12 +96,29 @@ export class MetadataUtils {
                 case 'google-gpt':
                     metadata.apiProvider = 'Google Search + GPT Summarizer';
                     break;
-
+                case 'google-grok':
+                    metadata.apiProvider = 'Google Search + Grok Summarizer';
+                    break;
+                case 'google-claude':
+                    metadata.apiProvider = 'Google Search + Claude Summarizer';
+                    break;
+                case 'google-openrouter':
+                    metadata.apiProvider = 'Google Search + OpenRouter Summarizer';
+                    break;
                 case 'sonar':
                     metadata.apiProvider = 'Perplexity (Agentic Search)';
                     break;
                 case 'gpt':
                     metadata.apiProvider = 'OpenAI GPT (Agentic Search)';
+                    break;
+                case 'grok':
+                    metadata.apiProvider = 'Grok (Agentic Search)';
+                    break;
+                case 'claude':
+                    metadata.apiProvider = 'Claude (Agentic Search)';
+                    break;
+                case 'openrouter':
+                    metadata.apiProvider = 'OpenRouter (Agentic Search)';
                     break;
             }
         }
@@ -113,28 +130,23 @@ export class MetadataUtils {
 
         if (settings.includeTags) {
             // Generate tags from topics and add some standard tags
-            const topicTags = settings.topics.map(topic => 
+            const topicTags = settings.topics.map(topic =>
                 topic.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
             );
             const standardTags = ['daily-news', settings.apiProvider];
-            metadata.tags = [...new Set([...topicTags, ...standardTags])];
-        }
 
-        if (settings.includeSource) {
-            switch (settings.apiProvider) {
-                case 'google-gemini':
-                    metadata.source = 'Google Search + Gemini AI';
-                    break;
-                case 'google-gpt':
-                    metadata.source = 'Google Search + OpenAI GPT';
-                    break;
-                case 'sonar':
-                    metadata.source = 'Perplexity Sonar';
-                    break;
-                case 'gpt':
-                    metadata.source = 'OpenAI GPT';
-                    break;
+            // Add model name as tag for OpenRouter
+            if (settings.apiProvider === 'openrouter' || settings.apiProvider === 'google-openrouter') {
+                const modelTag = settings.openrouterModel.replace(/[^a-z0-9-]/gi, '-').toLowerCase();
+                standardTags.push(modelTag);
             }
+            // Add model name as tag for Claude
+            if (settings.apiProvider === 'claude' || settings.apiProvider === 'google-claude') {
+                const modelTag = settings.claudeModel.replace(/[^a-z0-9-]/gi, '-').toLowerCase();
+                standardTags.push(modelTag);
+            }
+
+            metadata.tags = [...new Set([...topicTags, ...standardTags])];
         }
 
         if (settings.includeOutputFormat) {

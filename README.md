@@ -16,7 +16,7 @@
 
 ## ✨ Key Features
 
--   🤖 **AI-Powered Summaries**: Smart news analysis with AI, supporting multiple AI providers including Google, OpenAI, xAI and Perplexity.
+-   🤖 **AI-Powered Summaries**: Smart news analysis with AI, supporting multiple AI providers including Google, OpenAI, xAI, Anthropic, OpenRouter, and Perplexity.
 -   📅 **Auto-Generated Daily Briefings**: Wake up to fresh news in your vault.
 -   🎯 **Custom Topics**: Track exactly what interests you.
 -   🌍 **Multi-Language Support**: News in English, French, German, Spanish, and Italian.
@@ -43,9 +43,13 @@ You have four options for your news generation pipeline. **We recommend Google +
 | **Perplexity (Agentic)**   | • Simple setup (1 key)<br>• Fast results           | • Paid service only                            | Users who want fast, real-time info |
 | **GPT (Agentic)**          | • Simple setup (1 key)<br>• High-quality summaries | • Paid service only                            | Users who want top-tier AI          |
 | **Grok (Agentic)**         | • Simple setup (1 key)<br>• High-quality summaries | • Paid service only                            | Users who want top-tier AI          |
+| **Claude (Agentic)**       | • Simple setup (1 key)<br>• Built-in web search    | • Paid service only                            | Users who want Claude's analysis    |
+| **OpenRouter (Agentic)**   | • Simple setup (1 key)<br>• Model flexibility      | • Paid service only                            | Users who want model choice         |
 | **Google Search + Gemini** | • **Free tier available**<br>• Advanced filtering  | • Complex setup (3 keys)<br>• **Free service** | Power users, free option            |
 | **Google Search + GPT**    | • Mix-and-match<br>• Advanced filtering            | • Complex setup (3 keys)                       | Users who want top-tier AI          |
 | **Google Search + Grok**   | • Mix-and-match<br>• Advanced filtering            | • Complex setup (3 keys)                       | Users who want top-tier AI          |
+| **Google Search + Claude** | • Mix-and-match<br>• Advanced filtering            | • Complex setup (3 keys)                       | Users who want Claude summaries     |
+| **Google Search + OpenRouter** | • Mix-and-match<br>• Model flexibility         | • Complex setup (3 keys)                       | Users who want model choice         |
 
 ---
 
@@ -78,7 +82,26 @@ You have four options for your news generation pipeline. **We recommend Google +
     *   Choose **"Grok (Agentic Search)"** as your News Pipeline.
     *   Paste your key in the **"Grok API key"** field.
 
-### Option D: Google Search + Gemini Summarizer (Free Option)
+### Option D: Claude (Agentic Search)
+
+**Why?** Simple setup with one API key, using Claude's built-in web search capabilities for comprehensive news analysis.
+
+1.  **Get API Key:** Visit [Anthropic Console](https://console.anthropic.com/).
+2.  **Configure in Plugin:**
+    *   Choose **"Claude (Agentic Search)"** as your News Pipeline.
+    *   Paste your key in the **"Anthropic API key"** field.
+
+### Option E: OpenRouter (Agentic Search)
+
+**Why?** Access multiple AI models through a single API, with the flexibility to choose your preferred model.
+
+1.  **Get API Key:** Visit [OpenRouter](https://openrouter.ai/keys).
+2.  **Configure in Plugin:**
+    *   Choose **"OpenRouter (Agentic Search)"** as your News Pipeline.
+    *   Paste your key in the **"OpenRouter API key"** field.
+    *   Select your preferred model from the dropdown (e.g., Claude 3.5 Sonnet, GPT-4o, Gemini Pro).
+
+### Option F: Google Search + Gemini Summarizer (Free Option)
 
 **Why?** Access to a free tier and advanced control over search results.
 
@@ -91,31 +114,58 @@ You need 3 different keys:
 *   Choose **"Google Search + Gemini Summarizer"** as your News Pipeline.
 *   Enter all three keys in their respective fields.
 
-### Option E: Google Search + GPT Summarizer
+### Option G: Google Search + GPT Summarizer
 
 **Why?** Combine Google's powerful search and filtering with OpenAI's summarization capabilities.
 
 You need 3 different keys:
-1.  **Google Custom Search API Key (FREE):** See Option D.
-2.  **Google Search Engine ID (FREE):** See Option D.
+1.  **Google Custom Search API Key (FREE):** See Option F.
+2.  **Google Search Engine ID (FREE):** See Option F.
 3.  **OpenAI API Key:** Get from [OpenAI API](https://platform.openai.com/api-keys).
 
 **Configure in Plugin:**
 *   Choose **"Google Search + GPT Summarizer"** as your News Pipeline.
 *   Enter all three keys in their respective fields.
 
-### Option F: Google Search + Grok Summarizer
+### Option H: Google Search + Grok Summarizer
 
 **Why?** Combine Google's powerful search and filtering with Grok's summarization capabilities.
 
 You need 3 different keys:
-1.  **Google Custom Search API Key (FREE):** See Option D.
-2.  **Google Search Engine ID (FREE):** See Option D.
+1.  **Google Custom Search API Key (FREE):** See Option F.
+2.  **Google Search Engine ID (FREE):** See Option F.
 3.  **Grok API Key:** Get from [Grok API](https://x.ai/).
 
 **Configure in Plugin:**
 *   Choose **"Google Search + Grok Summarizer"** as your News Pipeline.
 *   Enter all three keys in their respective fields.
+
+### Option I: Google Search + Claude Summarizer
+
+**Why?** Combine Google's powerful search and filtering with Claude's summarization capabilities.
+
+You need 3 different keys:
+1.  **Google Custom Search API Key (FREE):** See Option F.
+2.  **Google Search Engine ID (FREE):** See Option F.
+3.  **Anthropic API Key:** Get from [Anthropic Console](https://console.anthropic.com/).
+
+**Configure in Plugin:**
+*   Choose **"Google Search + Claude Summarizer"** as your News Pipeline.
+*   Enter all three keys in their respective fields.
+
+### Option J: Google Search + OpenRouter Summarizer
+
+**Why?** Combine Google's powerful search and filtering with your choice of AI model through OpenRouter.
+
+You need 3 different keys:
+1.  **Google Custom Search API Key (FREE):** See Option F.
+2.  **Google Search Engine ID (FREE):** See Option F.
+3.  **OpenRouter API Key:** Get from [OpenRouter](https://openrouter.ai/keys).
+
+**Configure in Plugin:**
+*   Choose **"Google Search + OpenRouter Summarizer"** as your News Pipeline.
+*   Enter all three keys in their respective fields.
+*   Select your preferred model from the dropdown.
 
 ---
 
@@ -223,12 +273,21 @@ MIT License - Use freely and modify as needed!
 
 ## 📋 Changelog
 
-### v1.8.2
-- Fix Grok agentic search
+### v1.9.0
+- Add Claude (Anthropic) support
+    - Claude (Agentic Search) with built-in web search
+    - Google Search + Claude Summarizer hybrid mode
+- Add OpenRouter support
+    - OpenRouter (Agentic Search) with model selection
+    - Google Search + OpenRouter Summarizer hybrid mode
+    - Supports Claude 3.5 Sonnet, GPT-4o, Gemini Pro 1.5, Mistral Large, Llama 3.1 70B
 
 ### Previous Versions
 <details>
 <summary>Click to view changelog history</summary>
+
+**1.8.2**
+- Fix Grok agentic search
 
 **1.8.1**
 - Add Grok support
@@ -331,7 +390,8 @@ MIT License - Use freely and modify as needed!
 - [ ] Support multiple AI providers
 	- [x] OpenAI
 	- [x] xAI
-	- [ ] Anthropic
+	- [x] Anthropic
+	- [x] OpenRouter
 - [ ] Support more news sources
 - [ ] Others
 	- [ ] Add Gemini agentic search
