@@ -202,27 +202,78 @@ export default class DailyNewsPlugin extends Plugin {
                 return null;
             }
 
-            // Prepare template data
+            // Prepare fine-grained date/time data
+            const now = new Date();
+            const metadata = this.settings.enableMetadata
+                ? MetadataUtils.generateMetadata(this.settings, processingStartTime)
+                : {};
+
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            const monthNamesShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const dayNamesShort = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+            // Prepare template data with all placeholders
             const templateData: TemplateData = {
+                // Basic placeholders
                 metadata: this.settings.enableMetadata
-                    ? MetadataUtils.formatMetadataAsYAML(MetadataUtils.generateMetadata(this.settings, processingStartTime))
+                    ? MetadataUtils.formatMetadataAsYAML(metadata)
                     : '',
-                timestamp: `${LanguageUtils.getTranslation('generatedAt', this.settings.language)} ${new Date().toLocaleTimeString()}`,
+                timestamp: `${LanguageUtils.getTranslation('generatedAt', this.settings.language)} ${now.toLocaleTimeString()}`,
                 date: date,
+                time: now.toLocaleTimeString('en-US', { hour12: false }),
                 tableOfContents: `## ${LanguageUtils.getTranslation('tableOfContents', this.settings.language)}\n\n${ContentUtils.buildTableOfContents(this.settings.topics)}`,
                 topics: this.buildTopicsSections(topicContents),
                 topicContents: topicContents,
                 processingStatus: topicStatuses.some(status => status.error)
                     ? ContentUtils.buildProcessingStatus(topicStatuses, this.settings.language)
                     : '',
-                language: this.settings.language
+                language: this.settings.language,
+
+                // Fine-grained date/time placeholders
+                year: now.getFullYear().toString(),
+                month: (now.getMonth() + 1).toString().padStart(2, '0'),
+                monthName: monthNames[now.getMonth()],
+                monthNameShort: monthNamesShort[now.getMonth()],
+                day: now.getDate().toString().padStart(2, '0'),
+                dayName: dayNames[now.getDay()],
+                dayNameShort: dayNamesShort[now.getDay()],
+                hour: now.getHours().toString().padStart(2, '0'),
+                minute: now.getMinutes().toString().padStart(2, '0'),
+                second: now.getSeconds().toString().padStart(2, '0'),
+
+                // Metadata field placeholders
+                metadataDate: metadata.date || '',
+                metadataTime: metadata.time || '',
+                metadataTags: metadata.tags ? metadata.tags.join(', ') : '',
+                metadataLanguage: metadata.language || '',
+                metadataProvider: metadata.apiProvider || '',
+
+                // Topic info placeholders
+                topicCount: this.settings.topics.length.toString(),
+                topicList: this.settings.topics.join(', '),
+
+                // Topic sections (for future loop support)
+                topicSections: this.buildTopicsSections(topicContents)
             };
+
+            // Load template file if using file type
+            let templateFileContent: string | undefined;
+            if (this.settings.templateType === 'file' && this.settings.templateFilePath) {
+                templateFileContent = await TemplateEngine.loadTemplateFile(this.app, this.settings.templateFilePath) || undefined;
+                if (!templateFileContent) {
+                    new Notice(`Failed to load template file: ${this.settings.templateFilePath}. Using default template.`, 5000);
+                }
+            }
 
             // Render template
             const content = TemplateEngine.renderTemplate(
                 this.settings.templateType,
                 this.settings.customTemplate,
-                templateData
+                templateData,
+                templateFileContent
             );
 
             await this.app.vault.create(fileName, content);
