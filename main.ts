@@ -1,11 +1,12 @@
 import { App, Plugin, Notice, TFile } from 'obsidian';
-import type { DailyNewsSettings, TopicStatus } from './src/types';
+import type { DailyNewsSettings, TopicStatus, TemplateData, TopicContent } from './src/types';
 import { DEFAULT_SETTINGS } from './src/types';
 import { DailyNewsSettingTab } from './src/settings-tab';
 import { NewsProviderFactory } from './src/providers/news-provider-factory';
 import type { BaseNewsProvider } from './src/providers/base-news-provider';
 import { FileUtils, LanguageUtils, ContentUtils, MetadataUtils } from './src/utils';
 import { LANGUAGE_TRANSLATIONS } from './src/constants';
+import { TemplateEngine } from './src/template/template-engine';
 
 export default class DailyNewsPlugin extends Plugin {
     settings: DailyNewsSettings;
@@ -62,6 +63,16 @@ export default class DailyNewsPlugin extends Plugin {
         this.newsProvider = NewsProviderFactory.createProvider(this.settings);
     }
 
+    private buildTopicsSections(topicContents: TopicContent[]): string {
+        let sections = '';
+        for (const topicContent of topicContents) {
+            sections += `\n---\n\n`;
+            sections += `## ${topicContent.topic}\n\n`;
+            sections += topicContent.content;
+        }
+        return sections;
+    }
+
     async checkAndGenerateNews() {
         const now = new Date();
         const scheduledTime = this.settings.scheduleTime.split(':');
@@ -108,17 +119,9 @@ export default class DailyNewsPlugin extends Plugin {
                 return fileName;
             }
 
-            let content = '';
-            // Basic header content
-            content += `*${LanguageUtils.getTranslation('generatedAt', this.settings.language)} ${new Date().toLocaleTimeString()}*\n\n`;
-            content += `---\n\n`;
-
-            // Add table of contents
-            content += `## ${LanguageUtils.getTranslation('tableOfContents', this.settings.language)}\n\n`;
-            content += ContentUtils.buildTableOfContents(this.settings.topics);
-
             const topicStatuses: TopicStatus[] = [];
-            
+            const topicContents: TopicContent[] = [];
+
             // Process each topic
             for (const topic of this.settings.topics) {
                 const topicStatus: TopicStatus = {
@@ -127,47 +130,49 @@ export default class DailyNewsPlugin extends Plugin {
                     summarizationSuccess: false,
                     newsCount: 0
                 };
-                
+
+                let topicContent = '';
+
                 try {
-                    content += `\n---\n\n`;
-                    content += `## ${topic}\n\n`;
-                    
                     new Notice(`Fetching news for ${topic}...`);
 
                     try {
                         // Use the news provider to fetch and summarize news
                         const summary = await this.newsProvider.fetchAndSummarizeNews(topic);
-                        
+
                         // Check if summary contains error messages
                         if (summary.includes('Error') || summary.includes('error')) {
                             topicStatus.error = `${this.newsProvider.getProviderName()} error for topic "${topic}"`;
-                            content += `**Error processing ${topic} with ${this.newsProvider.getProviderName()}.**\n\n`;
-                            content += `${summary}\n`;
-                        } else if (summary.includes(LanguageUtils.getTranslation('noRecentNews', this.settings.language)) || 
+                            topicContent = `**Error processing ${topic} with ${this.newsProvider.getProviderName()}.**\n\n${summary}\n`;
+                        } else if (summary.includes(LanguageUtils.getTranslation('noRecentNews', this.settings.language)) ||
                                    summary.includes('No recent news found')) {
                             topicStatus.error = `No news found for topic "${topic}"`;
-                            content += `${summary}\n\n`;
+                            topicContent = `${summary}\n\n`;
                         } else {
                             // Success case
                             topicStatus.retrievalSuccess = true;
                             topicStatus.summarizationSuccess = true;
                             topicStatus.newsCount = 1; // We don't have granular info from unified interface
-                            content += summary + '\n';
+                            topicContent = summary + '\n';
                         }
                     } catch (providerError) {
                         console.error(`${this.newsProvider.getProviderName()} error for ${topic}:`, providerError);
                         topicStatus.error = `Provider error: ${providerError.message}`;
-                        content += `**${LanguageUtils.getTranslation('errorRetrieving', this.settings.language)} ${topic} using ${this.newsProvider.getProviderName()}.**\n\n`;
-                        content += `Error details: ${providerError.message}\n\n`;
+                        topicContent = `**${LanguageUtils.getTranslation('errorRetrieving', this.settings.language)} ${topic} using ${this.newsProvider.getProviderName()}.**\n\nError details: ${providerError.message}\n\n`;
                     }
 
                 } catch (topicError) {
                     console.error(`Unexpected error processing topic ${topic}:`, topicError);
                     topicStatus.error = `Unexpected error: ${topicError.message}`;
-                    content += `${LanguageUtils.getTranslation('errorRetrieving', this.settings.language)} ${topic}. Please try again later.\n\n`;
+                    topicContent = `${LanguageUtils.getTranslation('errorRetrieving', this.settings.language)} ${topic}. Please try again later.\n\n`;
                 }
-                
+
                 topicStatuses.push(topicStatus);
+                topicContents.push({
+                    topic: topic,
+                    content: topicContent,
+                    status: topicStatus
+                });
             }
 
             // Analyze results
@@ -197,19 +202,79 @@ export default class DailyNewsPlugin extends Plugin {
                 return null;
             }
 
-            // Add an error summary at the end of the note if some topics failed
-            if (topicStatuses.some(status => status.error)) {
-                content += ContentUtils.buildProcessingStatus(topicStatuses, this.settings.language);
+            // Prepare fine-grained date/time data
+            const now = new Date();
+            const metadata = this.settings.enableMetadata
+                ? MetadataUtils.generateMetadata(this.settings, processingStartTime)
+                : {};
+
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            const monthNamesShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const dayNamesShort = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+            // Prepare template data with all placeholders
+            const templateData: TemplateData = {
+                // Basic placeholders
+                metadata: this.settings.enableMetadata
+                    ? MetadataUtils.formatMetadataAsYAML(metadata)
+                    : '',
+                timestamp: `${LanguageUtils.getTranslation('generatedAt', this.settings.language)} ${now.toLocaleTimeString()}`,
+                date: date,
+                time: now.toLocaleTimeString('en-US', { hour12: false }),
+                tableOfContents: `## ${LanguageUtils.getTranslation('tableOfContents', this.settings.language)}\n\n${ContentUtils.buildTableOfContents(this.settings.topics)}`,
+                topics: this.buildTopicsSections(topicContents),
+                topicContents: topicContents,
+                processingStatus: topicStatuses.some(status => status.error)
+                    ? ContentUtils.buildProcessingStatus(topicStatuses, this.settings.language)
+                    : '',
+                language: this.settings.language,
+
+                // Fine-grained date/time placeholders
+                year: now.getFullYear().toString(),
+                month: (now.getMonth() + 1).toString().padStart(2, '0'),
+                monthName: monthNames[now.getMonth()],
+                monthNameShort: monthNamesShort[now.getMonth()],
+                day: now.getDate().toString().padStart(2, '0'),
+                dayName: dayNames[now.getDay()],
+                dayNameShort: dayNamesShort[now.getDay()],
+                hour: now.getHours().toString().padStart(2, '0'),
+                minute: now.getMinutes().toString().padStart(2, '0'),
+                second: now.getSeconds().toString().padStart(2, '0'),
+
+                // Metadata field placeholders
+                metadataDate: metadata.date || '',
+                metadataTime: metadata.time || '',
+                metadataTags: metadata.tags ? metadata.tags.join(', ') : '',
+                metadataLanguage: metadata.language || '',
+                metadataProvider: metadata.apiProvider || '',
+
+                // Topic info placeholders
+                topicCount: this.settings.topics.length.toString(),
+                topicList: this.settings.topics.join(', '),
+
+                // Topic sections (for future loop support)
+                topicSections: this.buildTopicsSections(topicContents)
+            };
+
+            // Load template file if using file type
+            let templateFileContent: string | undefined;
+            if (this.settings.templateType === 'file' && this.settings.templateFilePath) {
+                templateFileContent = await TemplateEngine.loadTemplateFile(this.app, this.settings.templateFilePath) || undefined;
+                if (!templateFileContent) {
+                    new Notice(`Failed to load template file: ${this.settings.templateFilePath}. Using default template.`, 5000);
+                }
             }
 
-            // Generate metadata if enabled
-            if (this.settings.enableMetadata) {
-                const metadata = MetadataUtils.generateMetadata(
-                    this.settings, 
-                    processingStartTime,
-                );
-                content = MetadataUtils.formatMetadataAsYAML(metadata) + content;
-            }
+            // Render template
+            const content = TemplateEngine.renderTemplate(
+                this.settings.templateType,
+                this.settings.customTemplate,
+                templateData,
+                templateFileContent
+            );
 
             await this.app.vault.create(fileName, content);
             
