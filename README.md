@@ -22,6 +22,7 @@
 -   🌍 **Multi-Language Support**: News in English, French, German, Spanish, and Italian.
 -   📱 **One-Click Access**: Sidebar button for instant news generation.
 -   📊 **Beautiful Formatting**: Clean, readable summaries with sources.
+-   🎨 **Customizable Templates**: Choose from presets or create your own with 25 dynamic placeholders and template file support.
 
 ---
 
@@ -162,6 +163,24 @@ The sidebar button is smart:
 -   **Detailed**: Full summaries with analysis (default).
 -   **Concise**: Brief bullet points.
 
+### Template Customization
+Choose how your daily news is formatted with flexible template options:
+
+-   **Template Presets**:
+    -   **Default**: Standard format with full structure
+    -   **Minimal**: Compact layout with essential information only
+    -   **Detailed**: Extended format with extra metadata
+-   **Custom Template**: Write your own template using 25 dynamic placeholders
+-   **Template Files**: Create templates as notes in your vault for easy editing
+
+**Available Placeholders** (25 total):
+-   **Basic** (8): `{{METADATA}}`, `{{TIMESTAMP}}`, `{{DATE}}`, `{{TIME}}`, `{{TABLE_OF_CONTENTS}}`, `{{TOPICS}}`, `{{PROCESSING_STATUS}}`, `{{LANGUAGE}}`
+-   **Date/Time** (10): `{{YEAR}}`, `{{MONTH}}`, `{{MONTH_NAME}}`, `{{DAY}}`, `{{DAY_NAME}}`, `{{HOUR}}`, `{{MINUTE}}`, and more
+-   **Metadata** (5): `{{METADATA_DATE}}`, `{{METADATA_TIME}}`, `{{METADATA_TAGS}}`, `{{METADATA_LANGUAGE}}`, `{{METADATA_PROVIDER}}`
+-   **Topics** (2): `{{TOPIC_COUNT}}`, `{{TOPIC_LIST}}`
+
+Access template settings in the plugin configuration, with built-in validation to ensure your template works correctly.
+
 ### Advanced Settings
 -   **AI-Generated Search Queries** (Google): Smarter search results.
 -   **Quality Filtering** (Google): Filter out low-quality sources.
@@ -223,12 +242,15 @@ MIT License - Use freely and modify as needed!
 
 ## 📋 Changelog
 
-### v1.8.2
-- Fix Grok agentic search
+### v1.9.0
+- Support customizable template setting
 
 ### Previous Versions
 <details>
 <summary>Click to view changelog history</summary>
+
+**1.8.2**
+- Fix Grok agentic search
 
 **1.8.1**
 - Add Grok support
@@ -335,4 +357,4 @@ MIT License - Use freely and modify as needed!
 - [ ] Support more news sources
 - [ ] Others
 	- [ ] Add Gemini agentic search
-	- [ ] Support customizable template
+	- [x] Support customizable template
