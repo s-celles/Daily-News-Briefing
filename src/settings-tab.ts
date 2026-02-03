@@ -2,6 +2,8 @@ import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
 import type { DailyNewsSettings } from './types';
 import type DailyNewsPlugin from '../main';
 import { LANGUAGE_NAMES } from './constants';
+import { TemplateEngine } from './template-engine';
+import { TEMPLATE_DESCRIPTIONS, TEMPLATE_EXAMPLE } from './template-presets';
 
 export class DailyNewsSettingTab extends PluginSettingTab {
     plugin: DailyNewsPlugin;
@@ -228,6 +230,65 @@ export class DailyNewsSettingTab extends PluginSettingTab {
                     this.plugin.settings.enableNotifications = value;
                     await this.plugin.saveSettings();
                 }));
+
+        // Template Configuration
+        containerEl.createEl('h2', {text: 'Template Configuration'});
+
+        new Setting(containerEl)
+            .setName('Template type')
+            .setDesc('Choose a template style for your daily news notes')
+            .addDropdown(dropdown => dropdown
+                .addOption('default', TEMPLATE_DESCRIPTIONS.default)
+                .addOption('minimal', TEMPLATE_DESCRIPTIONS.minimal)
+                .addOption('detailed', TEMPLATE_DESCRIPTIONS.detailed)
+                .addOption('custom', TEMPLATE_DESCRIPTIONS.custom)
+                .setValue(this.plugin.settings.templateType)
+                .onChange(async (value: 'default' | 'minimal' | 'detailed' | 'custom') => {
+                    this.plugin.settings.templateType = value;
+                    await this.plugin.saveSettings();
+                    this.display();
+                }));
+
+        if (this.plugin.settings.templateType === 'custom') {
+            new Setting(containerEl)
+                .setName('Custom template')
+                .setDesc('Define your own template using placeholders')
+                .addTextArea(text => {
+                    text.setPlaceholder(TEMPLATE_EXAMPLE)
+                        .setValue(this.plugin.settings.customTemplate)
+                        .onChange(async (value) => {
+                            this.plugin.settings.customTemplate = value;
+                            await this.plugin.saveSettings();
+                        });
+                    text.inputEl.rows = 12;
+                    text.inputEl.cols = 50;
+                    return text;
+                });
+
+            new Setting(containerEl)
+                .setName('Validate template')
+                .setDesc('Check if your custom template is valid')
+                .addButton(button => button
+                    .setButtonText('Validate')
+                    .onClick(() => {
+                        const validation = TemplateEngine.validateTemplate(this.plugin.settings.customTemplate);
+                        if (validation.valid) {
+                            new Notice('Template is valid!', 3000);
+                        } else {
+                            new Notice(`Template errors:\n${validation.errors.join('\n')}`, 5000);
+                        }
+                    }));
+
+            // Show placeholder info
+            const placeholderInfoEl = containerEl.createDiv('template-placeholder-info');
+            placeholderInfoEl.createEl('h4', {text: 'Available Placeholders:'});
+            const placeholderList = placeholderInfoEl.createEl('ul');
+            TemplateEngine.getPlaceholderInfo().forEach(info => {
+                const li = placeholderList.createEl('li');
+                li.createEl('strong', {text: info.placeholder});
+                li.appendText(` - ${info.description}`);
+            });
+        }
 
         containerEl.createEl('h2', {text: 'Advanced Configuration'});
 
