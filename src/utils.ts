@@ -88,24 +88,6 @@ export class MetadataUtils {
             metadata.language = settings.language;
         }
 
-        if (settings.includeApiProvider) {
-            switch (settings.apiProvider) {
-                case 'google-gemini':
-                    metadata.apiProvider = 'Google Search + Gemini Summarizer';
-                    break;
-                case 'google-gpt':
-                    metadata.apiProvider = 'Google Search + GPT Summarizer';
-                    break;
-
-                case 'sonar':
-                    metadata.apiProvider = 'Perplexity (Agentic Search)';
-                    break;
-                case 'gpt':
-                    metadata.apiProvider = 'OpenAI GPT (Agentic Search)';
-                    break;
-            }
-        }
-
         if (settings.includeProcessingTime) {
             const seconds = Math.round(processingTimeMs / 1000);
             metadata.processingTime = `${seconds}s`;

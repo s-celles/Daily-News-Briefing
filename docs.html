@@ -605,14 +605,19 @@ graph LR
                             <td><code>language: "en"</code></td>
                         </tr>
                         <tr>
-                            <td><strong>Include Provider</strong></td>
-                            <td>Show which AI provider was used</td>
-                            <td><code>provider: "google-gemini"</code></td>
+                            <td><strong>Include Source</strong></td>
+                            <td>Show which AI provider/source was used</td>
+                            <td><code>source: "Google Search + Gemini AI"</code></td>
                         </tr>
                         <tr>
                             <td><strong>Include Processing Time</strong></td>
-                            <td>Add generation timestamp</td>
-                            <td><code>generated: "2026-01-08T09:54:19"</code></td>
+                            <td>Add processing duration</td>
+                            <td><code>processingTime: "12s"</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Include Output Format</strong></td>
+                            <td>Add output format setting</td>
+                            <td><code>outputFormat: "detailed"</code></td>
                         </tr>
                     </tbody>
                 </table>
@@ -622,10 +627,11 @@ graph LR
 date: "2026-01-08"
 time: "09:54:19"
 topics: ["AI", "Tesla", "Bitcoin"]
-tags: ["#ai", "#tesla", "#bitcoin"]
+tags: ["ai", "tesla", "bitcoin", "daily-news", "google-gemini"]
 language: "en"
-provider: "google-gemini"
-generated: "2026-01-08T09:54:19Z"
+source: "Google Search + Gemini AI"
+processingTime: "12s"
+outputFormat: "detailed"
 ---</code></pre>
             </section>
 

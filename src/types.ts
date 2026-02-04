@@ -42,7 +42,6 @@ export interface DailyNewsSettings {
     includeTopics: boolean;
     includeTags: boolean;
     includeLanguage: boolean;
-    includeApiProvider: boolean;
     includeProcessingTime: boolean;
     includeSource: boolean;
     includeOutputFormat: boolean;
@@ -106,9 +105,8 @@ export const DEFAULT_SETTINGS: DailyNewsSettings = {
     includeDate: true,
     includeTime: true,
     includeTopics: true,
-includeTags: true,
+    includeTags: true,
     includeLanguage: false,
-    includeApiProvider: false,
     includeProcessingTime: false,
     includeSource: false,
     includeOutputFormat: false,
@@ -172,7 +170,6 @@ export interface NewsMetadata {
     topics?: string[];
     tags?: string[];
     language?: string;
-    apiProvider?: string;
     processingTime?: string;
     source?: string;
     outputFormat?: string;

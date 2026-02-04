@@ -231,6 +231,103 @@ export class DailyNewsSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
+        // Metadata Configuration
+        containerEl.createEl('h2', {text: 'Metadata Configuration'});
+        containerEl.createEl('p', {text: 'Configure YAML frontmatter metadata for generated news files.'});
+
+        new Setting(containerEl)
+            .setName('Enable metadata')
+            .setDesc('Add YAML frontmatter metadata to generated news files')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.enableMetadata)
+                .onChange(async (value) => {
+                    this.plugin.settings.enableMetadata = value;
+                    await this.plugin.saveSettings();
+                    this.display();
+                }));
+
+        if (this.plugin.settings.enableMetadata) {
+            new Setting(containerEl)
+                .setName('Include date')
+                .setDesc('Add date field (YYYY-MM-DD)')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeDate)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeDate = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(containerEl)
+                .setName('Include time')
+                .setDesc('Add time field (HH:MM:SS)')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeTime)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeTime = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(containerEl)
+                .setName('Include topics')
+                .setDesc('Add topics array')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeTopics)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeTopics = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(containerEl)
+                .setName('Include tags')
+                .setDesc('Add tags array (auto-generated from topics)')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeTags)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeTags = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(containerEl)
+                .setName('Include language')
+                .setDesc('Add language code')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeLanguage)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeLanguage = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(containerEl)
+                .setName('Include source')
+                .setDesc('Add news source/provider information')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeSource)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeSource = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(containerEl)
+                .setName('Include processing time')
+                .setDesc('Add processing duration')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeProcessingTime)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeProcessingTime = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(containerEl)
+                .setName('Include output format')
+                .setDesc('Add output format (detailed/concise)')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeOutputFormat)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeOutputFormat = value;
+                        await this.plugin.saveSettings();
+                    }));
+        }
+
         // Template Configuration
         containerEl.createEl('h2', {text: 'Template Configuration'});
 

@@ -249,7 +249,7 @@ export default class DailyNewsPlugin extends Plugin {
                 metadataTime: metadata.time || '',
                 metadataTags: metadata.tags ? metadata.tags.join(', ') : '',
                 metadataLanguage: metadata.language || '',
-                metadataProvider: metadata.apiProvider || '',
+                metadataProvider: metadata.source || '',
 
                 // Topic info placeholders
                 topicCount: this.settings.topics.length.toString(),
