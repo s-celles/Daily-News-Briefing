@@ -64,12 +64,15 @@ For detailed setup instructions, API guides, and advanced features:
 
 ## 📋 Changelog
 
-### v1.9.0
-- Support customizable template setting
+### v1.9.1
+- Fix metadata settings
 
 ### Previous Versions
 <details>
 <summary>Click to view changelog history</summary>
+
+**1.9.0**
+- Support customizable template setting
 
 **1.8.2**
 - Fix Grok agentic search
