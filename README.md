@@ -171,7 +171,7 @@ For detailed setup instructions, API guides, and advanced features:
 - Core news fetching and summarization
 </details>
 
-## 🤝 Contributing
+## 🤝 Contribute & Roadmap
 
 Contributions welcome! We especially appreciate:
 - Bug reports and fixes
@@ -179,8 +179,17 @@ Contributions welcome! We especially appreciate:
 - Documentation improvements
 - Feature suggestions
 
-**Contributors:**
-- [@s-celles](https://github.com/s-celles) - Multi-language support and refactoring
+### Roadmap
+
+- [ ] **More Providers** - Support for more LLM options (Issue #6)
+- [ ] **Cache Daily News Content** - Avoid redundant generation
+- [ ] **More Web Search Choices** - Replacement of Google Search
+
+### Contributors
+
+<a href="https://github.com/ChenziqiAdam/Daily-News-Briefing/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=ChenziqiAdam/Daily-News-Briefing" />
+</a>
 
 ## ❤️ Support
 
