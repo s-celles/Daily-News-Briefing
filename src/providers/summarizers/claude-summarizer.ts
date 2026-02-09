@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { NewsItem, DailyNewsSettings } from '../../types';
 import { LanguageUtils } from '../../utils';
 import type { AISummarizer } from './base-summarizer';
+import { CLAUDE_MODEL_NAME, ANTHROPIC_API_URL } from '../../constants';
 
 export class ClaudeSummarizer implements AISummarizer {
     private settings: DailyNewsSettings;
@@ -40,7 +41,7 @@ export class ClaudeSummarizer implements AISummarizer {
             });
 
             const response = await client.messages.create({
-                model: this.settings.claudeModel,
+                model: CLAUDE_MODEL_NAME,
                 max_tokens: 4096,
                 messages: [
                     {

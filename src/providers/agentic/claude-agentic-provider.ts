@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { BaseNewsProvider } from '../base-news-provider';
 import type { DailyNewsSettings } from '../../types';
 import { LanguageUtils } from '../../utils';
+import { CLAUDE_MODEL_NAME, ANTHROPIC_API_URL } from '../../constants';
 
 export class ClaudeAgenticProvider extends BaseNewsProvider {
     constructor(settings: DailyNewsSettings) {
@@ -83,7 +84,7 @@ Format your summary as bullet points with concrete facts:
                 `What are the latest significant news about "${topic}"?`;
 
             const response = await client.messages.create({
-                model: this.settings.claudeModel,
+                model: CLAUDE_MODEL_NAME,
                 max_tokens: 8192,
                 system: systemMessage,
                 tools: [

@@ -11,11 +11,11 @@ export const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
 // OpenRouter Constants
 export const OPENROUTER_API_URL = "https://openrouter.ai/api/v1";
-export const OPENROUTER_DEFAULT_MODEL = "anthropic/claude-3.5-sonnet";
+export const OPENROUTER_DEFAULT_MODEL = "anthropic/claude-4.5-sonnet";
 export const OPENROUTER_MODELS = [
-    { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet' },
+    { id: 'anthropic/claude-4.5-sonnet', name: 'Claude 4.5 Sonnet' },
     { id: 'openai/gpt-4o', name: 'GPT-4o' },
-    { id: 'google/gemini-pro-1.5', name: 'Gemini Pro 1.5' },
+    { id: 'google/gemini-2.5-flash', name: 'Gemini Flash 2.5' },
     { id: 'mistralai/mistral-large', name: 'Mistral Large' },
     { id: 'meta-llama/llama-3.1-70b-instruct', name: 'Llama 3.1 70B' },
 ];

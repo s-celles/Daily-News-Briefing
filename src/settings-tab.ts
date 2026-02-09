@@ -2,6 +2,8 @@ import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
 import type { DailyNewsSettings } from './types';
 import type DailyNewsPlugin from '../main';
 import { LANGUAGE_NAMES, OPENROUTER_MODELS } from './constants';
+import { TemplateEngine } from './template/template-engine';
+import { TEMPLATE_DESCRIPTIONS, TEMPLATE_EXAMPLE } from './template/template-presets';
 
 export class DailyNewsSettingTab extends PluginSettingTab {
     plugin: DailyNewsPlugin;
@@ -130,17 +132,6 @@ export class DailyNewsSettingTab extends PluginSettingTab {
                     .setValue(this.plugin.settings.anthropicApiKey)
                     .onChange(async (value) => {
                         this.plugin.settings.anthropicApiKey = value;
-                        await this.plugin.saveSettings();
-                    }));
-
-            new Setting(containerEl)
-                .setName('Claude model')
-                .setDesc('Claude model to use (e.g., claude-sonnet-4-5-20250929, claude-3-5-sonnet-20241022)')
-                .addText(text => text
-                    .setPlaceholder('claude-sonnet-4-5-20250929')
-                    .setValue(this.plugin.settings.claudeModel)
-                    .onChange(async (value) => {
-                        this.plugin.settings.claudeModel = value;
                         await this.plugin.saveSettings();
                     }));
         }
@@ -284,6 +275,226 @@ export class DailyNewsSettingTab extends PluginSettingTab {
                     this.plugin.settings.enableNotifications = value;
                     await this.plugin.saveSettings();
                 }));
+
+        // Metadata Configuration
+        containerEl.createEl('h2', {text: 'Metadata Configuration'});
+        containerEl.createEl('p', {text: 'Configure YAML frontmatter metadata for generated news files.'});
+
+        new Setting(containerEl)
+            .setName('Enable metadata')
+            .setDesc('Add YAML frontmatter metadata to generated news files')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.enableMetadata)
+                .onChange(async (value) => {
+                    this.plugin.settings.enableMetadata = value;
+                    await this.plugin.saveSettings();
+                    this.display();
+                }));
+
+        if (this.plugin.settings.enableMetadata) {
+            new Setting(containerEl)
+                .setName('Include date')
+                .setDesc('Add date field (YYYY-MM-DD)')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeDate)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeDate = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(containerEl)
+                .setName('Include time')
+                .setDesc('Add time field (HH:MM:SS)')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeTime)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeTime = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(containerEl)
+                .setName('Include topics')
+                .setDesc('Add topics array')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeTopics)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeTopics = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(containerEl)
+                .setName('Include tags')
+                .setDesc('Add tags array (auto-generated from topics)')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeTags)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeTags = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(containerEl)
+                .setName('Include language')
+                .setDesc('Add language code')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeLanguage)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeLanguage = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(containerEl)
+                .setName('Include source')
+                .setDesc('Add news source/provider information')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeSource)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeSource = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(containerEl)
+                .setName('Include processing time')
+                .setDesc('Add processing duration')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeProcessingTime)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeProcessingTime = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(containerEl)
+                .setName('Include output format')
+                .setDesc('Add output format (detailed/concise)')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.includeOutputFormat)
+                    .onChange(async (value) => {
+                        this.plugin.settings.includeOutputFormat = value;
+                        await this.plugin.saveSettings();
+                    }));
+        }
+
+        // Template Configuration
+        containerEl.createEl('h2', {text: 'Template Configuration'});
+
+        new Setting(containerEl)
+            .setName('Template type')
+            .setDesc('Choose a template style for your daily news notes')
+            .addDropdown(dropdown => dropdown
+                .addOption('default', TEMPLATE_DESCRIPTIONS.default)
+                .addOption('minimal', TEMPLATE_DESCRIPTIONS.minimal)
+                .addOption('detailed', TEMPLATE_DESCRIPTIONS.detailed)
+                .addOption('custom', TEMPLATE_DESCRIPTIONS.custom)
+                .addOption('file', TEMPLATE_DESCRIPTIONS.file)
+                .setValue(this.plugin.settings.templateType)
+                .onChange(async (value: 'default' | 'minimal' | 'detailed' | 'custom' | 'file') => {
+                    this.plugin.settings.templateType = value;
+                    await this.plugin.saveSettings();
+                    this.display();
+                }));
+
+        if (this.plugin.settings.templateType === 'custom') {
+            new Setting(containerEl)
+                .setName('Custom template')
+                .setDesc('Define your own template using placeholders')
+                .addTextArea(text => {
+                    text.setPlaceholder(TEMPLATE_EXAMPLE)
+                        .setValue(this.plugin.settings.customTemplate)
+                        .onChange(async (value) => {
+                            this.plugin.settings.customTemplate = value;
+                            await this.plugin.saveSettings();
+                        });
+                    text.inputEl.rows = 12;
+                    text.inputEl.cols = 50;
+                    return text;
+                });
+
+            new Setting(containerEl)
+                .setName('Validate template')
+                .setDesc('Check if your custom template is valid')
+                .addButton(button => button
+                    .setButtonText('Validate')
+                    .onClick(() => {
+                        const validation = TemplateEngine.validateTemplate(this.plugin.settings.customTemplate);
+                        if (validation.valid) {
+                            new Notice('Template is valid!', 3000);
+                        } else {
+                            new Notice(`Template errors:\n${validation.errors.join('\n')}`, 5000);
+                        }
+                    }));
+
+            // Show placeholder info
+            const placeholderInfoEl = containerEl.createDiv('template-placeholder-info');
+            placeholderInfoEl.createEl('h4', {text: 'Available Placeholders:'});
+
+            TemplateEngine.getPlaceholderInfo().forEach(category => {
+                const categoryEl = placeholderInfoEl.createEl('div', {cls: 'placeholder-category'});
+                categoryEl.createEl('strong', {text: category.category + ':'});
+                const placeholderList = categoryEl.createEl('ul');
+
+                category.placeholders.forEach(info => {
+                    const li = placeholderList.createEl('li');
+                    li.createEl('code', {text: info.placeholder});
+                    li.appendText(` - ${info.description}`);
+                });
+            });
+        }
+
+        if (this.plugin.settings.templateType === 'file') {
+            new Setting(containerEl)
+                .setName('Template file path')
+                .setDesc('Path to your template note (e.g., "Templates/Daily News.md")')
+                .addText(text => text
+                    .setPlaceholder('Templates/Daily News.md')
+                    .setValue(this.plugin.settings.templateFilePath)
+                    .onChange(async (value) => {
+                        this.plugin.settings.templateFilePath = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(containerEl)
+                .setName('Validate template file')
+                .setDesc('Check if your template file exists and is valid')
+                .addButton(button => button
+                    .setButtonText('Validate')
+                    .onClick(async () => {
+                        const fileContent = await TemplateEngine.loadTemplateFile(
+                            this.app,
+                            this.plugin.settings.templateFilePath
+                        );
+
+                        if (!fileContent) {
+                            new Notice(`Template file not found: ${this.plugin.settings.templateFilePath}`, 5000);
+                            return;
+                        }
+
+                        const validation = TemplateEngine.validateTemplate(fileContent);
+                        if (validation.valid) {
+                            new Notice('Template file is valid!', 3000);
+                        } else {
+                            new Notice(`Template errors:\n${validation.errors.join('\n')}`, 5000);
+                        }
+                    }));
+
+            // Show placeholder info for file templates too
+            const placeholderInfoEl = containerEl.createDiv('template-placeholder-info');
+            placeholderInfoEl.createEl('h4', {text: 'Available Placeholders:'});
+            placeholderInfoEl.createEl('p', {
+                text: 'Use these placeholders in your template file. See example below.',
+                cls: 'setting-item-description'
+            });
+
+            TemplateEngine.getPlaceholderInfo().forEach(category => {
+                const categoryEl = placeholderInfoEl.createEl('div', {cls: 'placeholder-category'});
+                categoryEl.createEl('strong', {text: category.category + ':'});
+                const placeholderList = categoryEl.createEl('ul');
+
+                category.placeholders.forEach(info => {
+                    const li = placeholderList.createEl('li');
+                    li.createEl('code', {text: info.placeholder});
+                    li.appendText(` - ${info.description}`);
+                });
+            });
+        }
 
         containerEl.createEl('h2', {text: 'Advanced Configuration'});
 

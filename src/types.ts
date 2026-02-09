@@ -1,3 +1,5 @@
+import { CLAUDE_MODEL_NAME } from './constants';
+
 export interface DailyNewsSettings {
     // API provider selection
     apiProvider: 'google-gemini' | 'google-gpt' | 'sonar' | 'gpt' | 'google-grok' | 'grok' | 'claude' | 'openrouter' | 'google-claude' | 'google-openrouter';
@@ -18,7 +20,6 @@ export interface DailyNewsSettings {
 
     // Anthropic API settings
     anthropicApiKey: string;
-    claudeModel: string;
 
     // OpenRouter API settings
     openrouterApiKey: string;
@@ -50,8 +51,8 @@ export interface DailyNewsSettings {
     includeTopics: boolean;
     includeTags: boolean;
     includeLanguage: boolean;
-    includeApiProvider: boolean;
     includeProcessingTime: boolean;
+    includeSource: boolean;
     includeOutputFormat: boolean;
     
     // Advanced settings
@@ -64,6 +65,11 @@ export interface DailyNewsSettings {
     useAIForQueries: boolean; // New setting: whether to use AI to generate search queries
     useAIJudge: boolean; // Whether to use AI for judging content quality
     aiJudgePrompt: string; // Custom prompt for AI judge, empty by default
+
+    // Template settings
+    templateType: 'default' | 'minimal' | 'detailed' | 'custom' | 'file';
+    customTemplate: string; // Custom template with placeholders
+    templateFilePath: string; // Path to template note file
 }
 
 export const DEFAULT_SETTINGS: DailyNewsSettings = {
@@ -86,11 +92,10 @@ export const DEFAULT_SETTINGS: DailyNewsSettings = {
 
     // Anthropic API settings
     anthropicApiKey: '',
-    claudeModel: 'claude-sonnet-4-5-20250929',
 
     // OpenRouter API settings
     openrouterApiKey: '',
-    openrouterModel: 'anthropic/claude-3.5-sonnet',
+    openrouterModel: CLAUDE_MODEL_NAME,
 
     // Core functionality
     topics: ['Technology', 'World News'],
@@ -116,10 +121,10 @@ export const DEFAULT_SETTINGS: DailyNewsSettings = {
     includeDate: true,
     includeTime: true,
     includeTopics: true,
-includeTags: true,
+    includeTags: true,
     includeLanguage: false,
-    includeApiProvider: false,
     includeProcessingTime: false,
+    includeSource: false,
     includeOutputFormat: false,
     
     // Advanced settings
@@ -131,7 +136,12 @@ includeTags: true,
     useAIJudge: true,
     aiJudgePrompt: '', // Custom prompt for AI judge, empty by default
     strictQualityFiltering: false,
-    qualityThreshold: 3
+    qualityThreshold: 3,
+
+    // Template settings
+    templateType: 'default',
+    customTemplate: '',
+    templateFilePath: ''
 }
 export interface NewsItem {
     title: string;
@@ -176,7 +186,52 @@ export interface NewsMetadata {
     topics?: string[];
     tags?: string[];
     language?: string;
-    apiProvider?: string;
     processingTime?: string;
+    source?: string;
     outputFormat?: string;
+}
+
+export interface TopicContent {
+    topic: string;
+    content: string;
+    status: TopicStatus;
+}
+
+export interface TemplateData {
+    // Basic placeholders
+    metadata: string; // YAML frontmatter
+    timestamp: string; // Generated at time
+    date: string; // Current date (YYYY-MM-DD)
+    time: string; // Current time (HH:MM:SS)
+    tableOfContents: string; // TOC markdown
+    topics: string; // All topic sections combined
+    topicContents: TopicContent[]; // Individual topic data for custom loops
+    processingStatus: string; // Error summary
+    language: string; // Current language code
+
+    // Fine-grained date/time placeholders
+    year: string; // YYYY
+    month: string; // MM
+    monthName: string; // January, February, etc.
+    monthNameShort: string; // Jan, Feb, etc.
+    day: string; // DD
+    dayName: string; // Monday, Tuesday, etc.
+    dayNameShort: string; // Mon, Tue, etc.
+    hour: string; // HH (24-hour)
+    minute: string; // MM
+    second: string; // SS
+
+    // Metadata field placeholders (individual)
+    metadataDate: string; // Just the date from metadata
+    metadataTime: string; // Just the time from metadata
+    metadataTags: string; // Comma-separated tags
+    metadataLanguage: string; // Language from metadata
+    metadataProvider: string; // API provider name
+
+    // Topic count placeholders
+    topicCount: string; // Number of topics
+    topicList: string; // Comma-separated topic names
+
+    // Per-topic placeholders (for loop support)
+    topicSections: string; // Individual topic sections with custom formatting
 }
